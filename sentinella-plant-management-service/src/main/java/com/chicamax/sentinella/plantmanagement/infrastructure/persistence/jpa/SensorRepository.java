@@ -1,0 +1,12 @@
+package com.chicamax.sentinella.plantmanagement.infrastructure.persistence.jpa;
+
+import com.chicamax.sentinella.plantmanagement.domain.model.aggregates.Sensor;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface SensorRepository extends JpaRepository<Sensor, UUID> {
+    List<Sensor> findByTailingDamId(UUID tailingDamId);
+
+    boolean existsByExternalId(String externalId);
+}
