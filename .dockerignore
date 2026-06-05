@@ -1,0 +1,11 @@
+# Artefactos y metadatos (reducir contexto y evitar cachés rotas por target locales)
+**/target/
+.git/
+.gitattributes
+.idea/
+.cursor/
+*.iml
+**/*.log
+
+# Opcional: monolito legacy no necesario para imágenes de microservicios
+sentinella-all-service/
