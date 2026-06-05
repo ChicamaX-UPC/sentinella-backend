@@ -1,0 +1,193 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sentinella
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: sentinella
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: api-gateway
+          image: sentinella/api-gateway:latest
+          ports:
+            - containerPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iam-service
+  namespace: sentinella
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: iam-service
+  template:
+    metadata:
+      labels:
+        app: iam-service
+    spec:
+      containers:
+        - name: iam-service
+          image: sentinella/iam-service:latest
+          ports:
+            - containerPort: 8081
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monitoring-service
+  namespace: sentinella
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: monitoring-service
+  template:
+    metadata:
+      labels:
+        app: monitoring-service
+    spec:
+      containers:
+        - name: monitoring-service
+          image: sentinella/monitoring-service:latest
+          ports:
+            - containerPort: 8082
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alerts-service
+  namespace: sentinella
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alerts-service
+  template:
+    metadata:
+      labels:
+        app: alerts-service
+    spec:
+      containers:
+        - name: alerts-service
+          image: sentinella/alerts-service:latest
+          ports:
+            - containerPort: 8083
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fieldops-service
+  namespace: sentinella
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fieldops-service
+  template:
+    metadata:
+      labels:
+        app: fieldops-service
+    spec:
+      containers:
+        - name: fieldops-service
+          image: sentinella/fieldops-service:latest
+          ports:
+            - containerPort: 8084
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard-service
+  namespace: sentinella
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dashboard-service
+  template:
+    metadata:
+      labels:
+        app: dashboard-service
+    spec:
+      containers:
+        - name: dashboard-service
+          image: sentinella/dashboard-service:latest
+          ports:
+            - containerPort: 8085
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reports-service
+  namespace: sentinella
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reports-service
+  template:
+    metadata:
+      labels:
+        app: reports-service
+    spec:
+      containers:
+        - name: reports-service
+          image: sentinella/reports-service:latest
+          ports:
+            - containerPort: 8086
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simulations-service
+  namespace: sentinella
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: simulations-service
+  template:
+    metadata:
+      labels:
+        app: simulations-service
+    spec:
+      containers:
+        - name: simulations-service
+          image: sentinella/simulations-service:latest
+          ports:
+            - containerPort: 8087
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodeadmin-service
+  namespace: sentinella
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nodeadmin-service
+  template:
+    metadata:
+      labels:
+        app: nodeadmin-service
+    spec:
+      containers:
+        - name: nodeadmin-service
+          image: sentinella/nodeadmin-service:latest
+          ports:
+            - containerPort: 8088
