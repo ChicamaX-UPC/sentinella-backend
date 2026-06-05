@@ -1,0 +1,37 @@
+package com.chicamax.sentinella.subscriptions.interfaces.rest;
+
+import com.chicamax.sentinella.subscriptions.domain.services.SubscriptionCommandService;
+import com.chicamax.sentinella.subscriptions.interfaces.rest.resources.SubscriptionResource;
+import com.chicamax.sentinella.subscriptions.interfaces.rest.transform.SubscriptionResourceAssembler;
+import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+@RestController
+@RequestMapping("/v1/subscriptions")
+public class SubscriptionController {
+
+    private final SubscriptionCommandService subscriptionCommandService;
+    private final SubscriptionResourceAssembler subscriptionResourceAssembler;
+
+    public SubscriptionController(
+            SubscriptionCommandService subscriptionCommandService,
+            SubscriptionResourceAssembler subscriptionResourceAssembler
+    ) {
+        this.subscriptionCommandService = subscriptionCommandService;
+        this.subscriptionResourceAssembler = subscriptionResourceAssembler;
+    }
+
+    @GetMapping("/active")
+    public ResponseEntity<SubscriptionResource> getActive(Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        var subscription = subscriptionCommandService.findActiveByUserId(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sin suscripción activa"));
+        return ResponseEntity.ok(subscriptionResourceAssembler.toResource(subscription));
+    }
+}
