@@ -1,0 +1,32 @@
+package com.chicamax.sentinella.monitoring.application.internal.queryservices;
+
+import com.chicamax.sentinella.monitoring.domain.model.aggregates.SensorNode;
+import com.chicamax.sentinella.monitoring.domain.model.queries.GetAllNodesQuery;
+import com.chicamax.sentinella.monitoring.domain.services.SensorNodeQueryService;
+import com.chicamax.sentinella.monitoring.infrastructure.persistence.jpa.SensorNodeRepository;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+
+@Service
+public class SensorNodeQueryServiceImpl implements SensorNodeQueryService {
+
+    private final SensorNodeRepository sensorNodeRepository;
+
+    public SensorNodeQueryServiceImpl(SensorNodeRepository sensorNodeRepository) {
+        this.sensorNodeRepository = sensorNodeRepository;
+    }
+
+    @Override
+    public Page<SensorNode> handle(GetAllNodesQuery query) {
+        var pageable = PageRequest.of(query.safePage(), query.safeSize());
+        return sensorNodeRepository.findPaged(query.scoped(), query.damIds(), pageable);
+    }
+
+    @Override
+    public Optional<SensorNode> findById(UUID nodeId) {
+        return sensorNodeRepository.findById(nodeId);
+    }
+}
