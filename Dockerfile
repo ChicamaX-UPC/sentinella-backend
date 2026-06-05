@@ -1,0 +1,14 @@
+FROM maven:3.9.9-eclipse-temurin-21 AS build
+WORKDIR /app
+COPY . .
+RUN mvn -B -DskipTests -pl sentinella-api-gateway -am package
+
+FROM eclipse-temurin:21-jre-alpine
+RUN apk add --no-cache curl
+RUN addgroup -S app && adduser -S app -G app
+WORKDIR /app
+COPY --from=build /app/sentinella-api-gateway/target/sentinella-api-gateway-0.0.1-SNAPSHOT.jar app.jar
+RUN chown app:app /app/app.jar
+USER app
+EXPOSE 8080
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-jar", "app.jar"]
