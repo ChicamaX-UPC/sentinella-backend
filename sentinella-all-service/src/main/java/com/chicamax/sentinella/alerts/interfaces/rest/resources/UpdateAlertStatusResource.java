@@ -1,0 +1,12 @@
+package com.chicamax.sentinella.alerts.interfaces.rest.resources;
+
+import com.chicamax.sentinella.alerts.domain.model.valueobjects.AlertAction;
+import jakarta.validation.constraints.NotNull;
+import java.util.UUID;
+
+public record UpdateAlertStatusResource(
+        @NotNull AlertAction action,
+        UUID assignedTo,
+        String notes
+) {
+}
