@@ -1,0 +1,15 @@
+package com.chicamax.sentinella.simulations.domain.model.commands;
+
+import com.chicamax.sentinella.simulations.domain.model.valueobjects.SimulationType;
+import java.util.UUID;
+
+public record UpdateSimulationScenarioCommand(
+        UUID scenarioId,
+        String name,
+        String description,
+        SimulationType simulationType,
+        String parametersJson,
+        UUID actorId,
+        String actorRole
+) {
+}
