@@ -1,0 +1,109 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: sentinella-api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: iam-swagger
+          uri: ${IAM_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/swagger-ui/**,/swagger-ui.html,/v3/api-docs,/v3/api-docs/**,/webjars/swagger-ui/**
+        - id: dashboard-ws
+          uri: ${DASHBOARD_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/v1/ws/**
+        - id: plant-management-nodes-post
+          uri: ${PLANT_MANAGEMENT_SERVICE_URL:http://localhost:8092}
+          predicates:
+            - Path=/api/v1/nodes
+            - Method=POST
+          filters:
+            - StripPrefix=1
+        - id: plant-management-relaves
+          uri: ${PLANT_MANAGEMENT_SERVICE_URL:http://localhost:8092}
+          predicates:
+            - Path=/api/v1/relaves,/api/v1/relaves/**
+          filters:
+            - StripPrefix=1
+        - id: plant-management-operators
+          uri: ${PLANT_MANAGEMENT_SERVICE_URL:http://localhost:8092}
+          predicates:
+            - Path=/api/v1/operators,/api/v1/operators/**
+          filters:
+            - StripPrefix=1
+        - id: plant-management-rounds
+          uri: ${PLANT_MANAGEMENT_SERVICE_URL:http://localhost:8092}
+          predicates:
+            - Path=/api/v1/rounds/**
+          filters:
+            - StripPrefix=1
+        - id: monitoring-nodes
+          uri: ${MONITORING_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/nodes,/api/v1/nodes/**
+            - Method=GET
+          filters:
+            - StripPrefix=1
+        - id: monitoring-alert-rules
+          uri: ${MONITORING_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/alert-rules,/api/v1/alert-rules/**
+          filters:
+            - StripPrefix=1
+        - id: iam
+          uri: ${IAM_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/auth/**,/api/v1/users/**
+          filters:
+            - StripPrefix=1
+        - id: profiles
+          uri: ${PROFILES_SERVICE_URL:http://localhost:8089}
+          predicates:
+            - Path=/api/v1/profiles/**
+          filters:
+            - StripPrefix=1
+        - id: payments
+          uri: ${PAYMENTS_SERVICE_URL:http://localhost:8090}
+          predicates:
+            - Path=/api/v1/payments/**
+          filters:
+            - StripPrefix=1
+        - id: subscriptions
+          uri: ${SUBSCRIPTIONS_SERVICE_URL:http://localhost:8091}
+          predicates:
+            - Path=/api/v1/subscriptions/**
+          filters:
+            - StripPrefix=1
+        - id: alerts
+          uri: ${ALERTS_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/v1/alerts/**
+          filters:
+            - StripPrefix=1
+        - id: dashboard
+          uri: ${DASHBOARD_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/api/v1/dashboard/**
+          filters:
+            - StripPrefix=1
+        - id: reports
+          uri: ${REPORTS_SERVICE_URL:http://localhost:8086}
+          predicates:
+            - Path=/api/v1/reports/**
+          filters:
+            - StripPrefix=1
+        - id: simulations
+          uri: ${SIMULATIONS_SERVICE_URL:http://localhost:8087}
+          predicates:
+            - Path=/api/v1/simulation-scenarios/**
+          filters:
+            - StripPrefix=1
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
