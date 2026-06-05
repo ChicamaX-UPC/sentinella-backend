@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sentinella-observability
+  namespace: sentinella
+data:
+  MANAGEMENT_TRACING_ENABLED: "true"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger-collector.observability:4318/v1/traces"
+  MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,prometheus"
