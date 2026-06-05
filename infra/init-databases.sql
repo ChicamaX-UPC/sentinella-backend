@@ -1,0 +1,13 @@
+CREATE DATABASE sentinella_iam;
+CREATE DATABASE sentinella_monitoring;
+CREATE DATABASE sentinella_alerts;
+CREATE DATABASE sentinella_fieldops;
+CREATE DATABASE sentinella_plant_management;
+CREATE DATABASE sentinella_dashboard;
+CREATE DATABASE sentinella_reports;
+CREATE DATABASE sentinella_simulations;
+CREATE DATABASE sentinella_nodeadmin;
+CREATE DATABASE sentinella_profiles;
+CREATE DATABASE sentinella_payments;
+CREATE DATABASE sentinella_subscriptions;
+CREATE DATABASE sentinella_blockchain;
