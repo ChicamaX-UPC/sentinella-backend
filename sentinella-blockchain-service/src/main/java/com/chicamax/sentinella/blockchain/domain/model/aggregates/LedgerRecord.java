@@ -42,4 +42,28 @@ public class LedgerRecord {
         record.registeredAt = OffsetDateTime.now();
         return record;
     }
+
+    public UUID getId() {
+        return id;
+    }
+
+    public String getEntityType() {
+        return entityType;
+    }
+
+    public UUID getEntityId() {
+        return entityId;
+    }
+
+    public String getContentHash() {
+        return contentHash;
+    }
+
+    public String getFabricTxId() {
+        return fabricTxId;
+    }
+
+    public OffsetDateTime getRegisteredAt() {
+        return registeredAt;
+    }
 }
