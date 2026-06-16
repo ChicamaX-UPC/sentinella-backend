@@ -89,7 +89,25 @@ public class DashboardQueryServiceImpl implements DashboardQueryService {
                 .filter(round -> damIds.isEmpty() || damIds.contains(round.tailingDamId()))
                 .filter(round -> "COMPLETED".equals(round.status()))
                 .count();
-        return new FieldDashboardResource(activeAlerts, roundsInProgress, pendingSync);
+        long sensorsOutOfRange = nodesById.values().stream()
+                .filter(node -> {
+                    String st = node.status() == null ? "" : node.status().toUpperCase();
+                    return st.contains("WARN") || st.contains("CRIT") || st.contains("OFFLINE");
+                })
+                .count();
+        OffsetDateTime lastIncidentAt = alertList.stream()
+                .filter(alert -> nodeBelongsToDamScope(alert.nodeId(), damIds, nodesById))
+                .map(WireAlert::createdAt)
+                .filter(ts -> ts != null)
+                .max(OffsetDateTime::compareTo)
+                .orElse(null);
+        return new FieldDashboardResource(
+                activeAlerts,
+                roundsInProgress,
+                pendingSync,
+                sensorsOutOfRange,
+                lastIncidentAt
+        );
     }
 
     @Override
@@ -192,7 +210,7 @@ public class DashboardQueryServiceImpl implements DashboardQueryService {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record WireAlert(UUID nodeId, String status, String severity) {
+    private record WireAlert(UUID nodeId, String status, String severity, OffsetDateTime createdAt) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

@@ -45,6 +45,17 @@ services:
     volumes:
       - minio_data:/data
 
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 minio minio12345; do sleep 1; done;
+      mc mb local/sentinella --ignore-existing;
+      exit 0;
+      "
+
   jaeger:
     image: jaegertracing/all-in-one:1.57
     environment:
@@ -68,6 +79,7 @@ services:
       DATABASE_USERNAME: postgres
       DATABASE_PASSWORD: postgres
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      SENTINELLA_INTERNAL_SERVICE_KEY: sentinella-internal-dev
     depends_on:
       postgres:
         condition: service_healthy
@@ -89,6 +101,7 @@ services:
       DATABASE_PASSWORD: postgres
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       JWK_SET_URI: http://iam-service:8081/v1/auth/jwks
+      SENTINELLA_INTERNAL_SERVICE_KEY: sentinella-internal-dev
     depends_on:
       postgres:
         condition: service_healthy
@@ -115,6 +128,10 @@ services:
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       JWK_SET_URI: http://iam-service:8081/v1/auth/jwks
       MONITORING_BASE_URL: http://monitoring-service:8082
+      IAM_BASE_URL: http://iam-service:8081
+      SENTINELLA_INTERNAL_SERVICE_KEY: sentinella-internal-dev
+      ALERTS_NOTIFICATIONS_ENABLED: "true"
+      ALERTS_PUSH_ENABLED: "true"
       ALERTS_EMAIL_API_KEY: ${SENDGRID_API_KEY:-}
       ALERTS_EMAIL_FROM: ${SENDGRID_FROM_EMAIL:-}
       ALERTS_EMAIL_TO: ${ALERTS_EMAIL_TO:-}
@@ -143,6 +160,12 @@ services:
       DATABASE_PASSWORD: postgres
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       JWK_SET_URI: http://iam-service:8081/v1/auth/jwks
+      STORAGE_S3_ENABLED: "true"
+      STORAGE_S3_BUCKET: sentinella
+      STORAGE_S3_PREFIX: fieldops
+      STORAGE_S3_ACCESS_KEY: minio
+      STORAGE_S3_SECRET_KEY: minio12345
+      STORAGE_S3_ENDPOINT: http://minio:9000
     depends_on:
       postgres:
         condition: service_healthy
@@ -150,6 +173,10 @@ services:
         condition: service_started
       rabbitmq:
         condition: service_started
+      minio:
+        condition: service_started
+      minio-init:
+        condition: service_completed_successfully
 
   profiles-service:
     build:
@@ -337,6 +364,7 @@ services:
       PROFILES_SERVICE_URL: http://profiles-service:8089
       PAYMENTS_SERVICE_URL: http://payments-service:8090
       SUBSCRIPTIONS_SERVICE_URL: http://subscriptions-service:8091
+      BLOCKCHAIN_SERVICE_URL: http://blockchain-service:8093
     depends_on:
       - iam-service
       - monitoring-service

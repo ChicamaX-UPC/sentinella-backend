@@ -101,6 +101,12 @@ spring:
             - Path=/api/v1/simulation-scenarios/**
           filters:
             - StripPrefix=1
+        - id: blockchain
+          uri: ${BLOCKCHAIN_SERVICE_URL:http://localhost:8093}
+          predicates:
+            - Path=/api/v1/blockchain/**
+          filters:
+            - StripPrefix=1
 
 management:
   endpoints:

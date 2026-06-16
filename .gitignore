@@ -36,3 +36,7 @@ build/
 .env
 .env.local
 *.pem
+
+### Túneles Cloudflare locales (logs y URLs generadas) ###
+infra/tunnels/*.log
+infra/tunnels/*.env

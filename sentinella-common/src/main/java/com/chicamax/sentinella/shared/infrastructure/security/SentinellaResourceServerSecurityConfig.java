@@ -37,6 +37,7 @@ public class SentinellaResourceServerSecurityConfig {
                         .permitAll()
                         .requestMatchers("/v3/api-docs", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**").permitAll()
                         .requestMatchers("/v1/ws/**").permitAll()
+                        .requestMatchers("/v1/internal/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth -> oauth.jwt(
