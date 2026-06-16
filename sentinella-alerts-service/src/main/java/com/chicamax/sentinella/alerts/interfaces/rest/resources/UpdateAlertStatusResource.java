@@ -7,6 +7,8 @@ import java.util.UUID;
 public record UpdateAlertStatusResource(
         @NotNull AlertAction action,
         UUID assignedTo,
-        String notes
+        String notes,
+        Double latitude,
+        Double longitude
 ) {
 }

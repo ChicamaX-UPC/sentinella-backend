@@ -107,9 +107,25 @@ public class AlertsController {
                 actorId,
                 actorRole,
                 resource.assignedTo(),
-                resource.notes()
+                mergeAckNotes(resource)
         ));
         return ResponseEntity.ok(alertAssembler.toResource(updated));
+    }
+
+    private static String mergeAckNotes(UpdateAlertStatusResource resource) {
+        String notes = resource.notes();
+        if (resource.latitude() == null || resource.longitude() == null) {
+            return notes;
+        }
+        String geo = String.format(
+                "Ubicación ACK: %.5f, %.5f",
+                resource.latitude(),
+                resource.longitude()
+        );
+        if (notes == null || notes.isBlank()) {
+            return geo;
+        }
+        return notes.trim() + " | " + geo;
     }
 
     @GetMapping("/{alertId}/audit")

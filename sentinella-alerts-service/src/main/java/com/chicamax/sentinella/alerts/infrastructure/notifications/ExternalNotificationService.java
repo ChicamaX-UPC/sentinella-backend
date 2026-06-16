@@ -38,6 +38,7 @@ public class ExternalNotificationService implements NotificationService {
     private final String twilioAuthToken;
     private final String smsFrom;
     private final String smsTo;
+    private final ExpoPushDispatchService expoPushDispatchService;
 
     public ExternalNotificationService(
             @Value("${alerts.notifications.enabled:false}") boolean notificationsEnabled,
@@ -50,7 +51,8 @@ public class ExternalNotificationService implements NotificationService {
             @Value("${alerts.notifications.sms.twilio.account-sid:}") String twilioAccountSid,
             @Value("${alerts.notifications.sms.twilio.auth-token:}") String twilioAuthToken,
             @Value("${alerts.notifications.sms.from:}") String smsFrom,
-            @Value("${alerts.notifications.sms.to:}") String smsTo
+            @Value("${alerts.notifications.sms.to:}") String smsTo,
+            ExpoPushDispatchService expoPushDispatchService
     ) {
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
@@ -66,6 +68,7 @@ public class ExternalNotificationService implements NotificationService {
         this.twilioAuthToken = twilioAuthToken;
         this.smsFrom = smsFrom;
         this.smsTo = smsTo;
+        this.expoPushDispatchService = expoPushDispatchService;
     }
 
     @Override
@@ -85,6 +88,8 @@ public class ExternalNotificationService implements NotificationService {
                 sendEmail(alert);
             } else if (channel == AlertChannel.SMS) {
                 sendSms(alert);
+            } else if (channel == AlertChannel.APP) {
+                expoPushDispatchService.sendForAlert(alert);
             }
         } catch (Exception exception) {
             LOGGER.warn("No se pudo enviar notificacion {} para alerta {}", channel, alert.getId(), exception);
