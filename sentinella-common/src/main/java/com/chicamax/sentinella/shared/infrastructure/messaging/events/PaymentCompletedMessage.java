@@ -8,6 +8,16 @@ public record PaymentCompletedMessage(
         UUID userId,
         UUID planId,
         BigDecimal amount,
-        String currency
+        String currency,
+        String stripeSubscriptionId
 ) {
+    public PaymentCompletedMessage(
+            UUID paymentId,
+            UUID userId,
+            UUID planId,
+            BigDecimal amount,
+            String currency
+    ) {
+        this(paymentId, userId, planId, amount, currency, null);
+    }
 }

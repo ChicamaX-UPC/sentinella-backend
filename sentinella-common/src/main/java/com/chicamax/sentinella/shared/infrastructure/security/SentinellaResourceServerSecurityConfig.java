@@ -2,6 +2,7 @@ package com.chicamax.sentinella.shared.infrastructure.security;
 
 import java.util.Collection;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
@@ -26,20 +27,31 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableMethodSecurity
 public class SentinellaResourceServerSecurityConfig {
 
+    private final boolean openapiPublic;
+
+    public SentinellaResourceServerSecurityConfig(
+            @Value("${sentinella.openapi.public:true}") boolean openapiPublic
+    ) {
+        this.openapiPublic = openapiPublic;
+    }
+
     @Bean
     SecurityFilterChain sentinellaResourceServerChain(HttpSecurity http) throws Exception {
         return http
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info", "/actuator/prometheus")
-                        .permitAll()
-                        .requestMatchers("/v3/api-docs", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**").permitAll()
-                        .requestMatchers("/v1/ws/**").permitAll()
-                        .requestMatchers("/v1/internal/**").permitAll()
-                        .anyRequest().authenticated()
-                )
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info", "/actuator/prometheus")
+                            .permitAll();
+                    if (openapiPublic) {
+                        auth.requestMatchers("/v3/api-docs", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**")
+                                .permitAll();
+                    }
+                    auth.requestMatchers("/v1/ws/**").permitAll()
+                            .requestMatchers("/v1/internal/**").permitAll()
+                            .anyRequest().authenticated();
+                })
                 .oauth2ResourceServer(oauth -> oauth.jwt(
                         jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())
                 ))

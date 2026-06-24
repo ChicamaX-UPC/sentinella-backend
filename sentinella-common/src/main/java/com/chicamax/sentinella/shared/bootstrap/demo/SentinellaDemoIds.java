@@ -16,6 +16,8 @@ public final class SentinellaDemoIds {
     public static final UUID USER_OPERATOR = UUID.fromString("b0000003-0003-4003-8003-000000000003");
     public static final UUID USER_AUDIT = UUID.fromString("b0000004-0004-4004-8004-000000000004");
 
+    public static final UUID ORGANIZATION_DEMO = UUID.fromString("e0000001-0001-4001-8001-000000000001");
+
     public static final UUID NODE_WATER_LEVEL = UUID.fromString("c1000001-0001-4001-8001-000000000001");
     public static final UUID NODE_PRESSURE = UUID.fromString("c1000002-0002-4002-8002-000000000002");
     public static final UUID NODE_PLUVIOMETER = UUID.fromString("c1000003-0003-4003-8003-000000000003");

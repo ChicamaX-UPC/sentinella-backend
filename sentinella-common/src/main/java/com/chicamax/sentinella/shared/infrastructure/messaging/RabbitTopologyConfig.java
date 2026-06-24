@@ -3,9 +3,13 @@ package com.chicamax.sentinella.shared.infrastructure.messaging;
 import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.ALERT_ACKNOWLEDGED_ROUTING;
 import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.ALERT_CLOSED_ROUTING;
 import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.ALERT_CREATED_ROUTING;
+import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.ALERT_NOTIFICATION_DISPATCH_ROUTING;
+import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.ALERT_PREDICTIVE_TRIGGERED_ROUTING;
 import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.ALERT_TRIGGERED_ROUTING;
 import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.BLOCKCHAIN_REGISTER_ROUTING;
+import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.DASHBOARD_KPI_RECOMPUTE_ROUTING;
 import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.NODE_OFFLINE_ROUTING;
+import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.REPORT_GENERATE_ROUTING;
 import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.PAYMENT_COMPLETED_ROUTING;
 import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.ROUND_SYNCED_ROUTING;
 import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.SENSOR_READING_PERSISTED_ROUTING;
@@ -15,6 +19,14 @@ import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingCon
 import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.SENTINELLA_EXCHANGE;
 import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.SUBSCRIPTION_ACTIVATED_ROUTING;
 import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.SUBSCRIPTION_CANCELLED_ROUTING;
+import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.SUBSCRIPTION_STRIPE_CANCELLED_ROUTING;
+import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.SUBSCRIPTION_PERIOD_SYNC_ROUTING;
+import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.SUBSCRIPTION_PAYMENT_FAILED_ROUTING;
+import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.BILLING_RENEWAL_REMINDER_ROUTING;
+import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.BILLING_SERVICE_SUSPENDED_ROUTING;
+import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.BILLING_DUNNING_RETRY_ROUTING;
+import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.RELAVE_CREATED_ROUTING;
+import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.PROFILE_PLAN_CLEARED_ROUTING;
 import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.TELEMETRY_ROUTING;
 import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.THRESHOLD_EXCEEDED_ROUTING;
 import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.USER_REGISTERED_ROUTING;
@@ -172,6 +184,70 @@ public class RabbitTopologyConfig {
     }
 
     @Bean
+    public Queue subscriptionStripeCancelledQueue() {
+        return QueueBuilder.durable("subscription.stripe.cancelled.queue")
+                .deadLetterExchange(SENTINELLA_DLX_EXCHANGE)
+                .deadLetterRoutingKey("subscription.stripe.cancelled.dlq")
+                .build();
+    }
+
+    @Bean
+    public Queue profilePlanClearedQueue() {
+        return QueueBuilder.durable("profile.plan.cleared.queue")
+                .deadLetterExchange(SENTINELLA_DLX_EXCHANGE)
+                .deadLetterRoutingKey("profile.plan.cleared.dlq")
+                .build();
+    }
+
+    @Bean
+    public Queue subscriptionPeriodSyncQueue() {
+        return QueueBuilder.durable("subscription.period.sync.queue")
+                .deadLetterExchange(SENTINELLA_DLX_EXCHANGE)
+                .deadLetterRoutingKey("subscription.period.sync.dlq")
+                .build();
+    }
+
+    @Bean
+    public Queue subscriptionPaymentFailedQueue() {
+        return QueueBuilder.durable("subscription.payment.failed.queue")
+                .deadLetterExchange(SENTINELLA_DLX_EXCHANGE)
+                .deadLetterRoutingKey("subscription.payment.failed.dlq")
+                .build();
+    }
+
+    @Bean
+    public Queue billingRenewalReminderQueue() {
+        return QueueBuilder.durable("billing.renewal.reminder.queue")
+                .deadLetterExchange(SENTINELLA_DLX_EXCHANGE)
+                .deadLetterRoutingKey("billing.renewal.reminder.dlq")
+                .build();
+    }
+
+    @Bean
+    public Queue billingServiceSuspendedQueue() {
+        return QueueBuilder.durable("billing.service.suspended.queue")
+                .deadLetterExchange(SENTINELLA_DLX_EXCHANGE)
+                .deadLetterRoutingKey("billing.service.suspended.dlq")
+                .build();
+    }
+
+    @Bean
+    public Queue billingDunningRetryQueue() {
+        return QueueBuilder.durable("billing.dunning.retry.queue")
+                .deadLetterExchange(SENTINELLA_DLX_EXCHANGE)
+                .deadLetterRoutingKey("billing.dunning.retry.dlq")
+                .build();
+    }
+
+    @Bean
+    public Queue relaveCreatedQueue() {
+        return QueueBuilder.durable("relave.created.queue")
+                .deadLetterExchange(SENTINELLA_DLX_EXCHANGE)
+                .deadLetterRoutingKey("relave.created.dlq")
+                .build();
+    }
+
+    @Bean
     public Queue sensorRegisteredQueue() {
         return QueueBuilder.durable("sensor.registered.queue")
                 .deadLetterExchange(SENTINELLA_DLX_EXCHANGE)
@@ -188,10 +264,42 @@ public class RabbitTopologyConfig {
     }
 
     @Bean
+    public Queue alertPredictiveTriggeredQueue() {
+        return QueueBuilder.durable("alert.predictive.triggered.queue")
+                .deadLetterExchange(SENTINELLA_DLX_EXCHANGE)
+                .deadLetterRoutingKey("alert.predictive.triggered.dlq")
+                .build();
+    }
+
+    @Bean
     public Queue blockchainRegisterQueue() {
         return QueueBuilder.durable("blockchain.register.queue")
                 .deadLetterExchange(SENTINELLA_DLX_EXCHANGE)
                 .deadLetterRoutingKey("blockchain.register.dlq")
+                .build();
+    }
+
+    @Bean
+    public Queue alertNotificationDispatchQueue() {
+        return QueueBuilder.durable("alert.notification.dispatch.queue")
+                .deadLetterExchange(SENTINELLA_DLX_EXCHANGE)
+                .deadLetterRoutingKey("alert.notification.dispatch.dlq")
+                .build();
+    }
+
+    @Bean
+    public Queue reportGenerateQueue() {
+        return QueueBuilder.durable("report.generate.queue")
+                .deadLetterExchange(SENTINELLA_DLX_EXCHANGE)
+                .deadLetterRoutingKey("report.generate.dlq")
+                .build();
+    }
+
+    @Bean
+    public Queue dashboardKpiRecomputeQueue() {
+        return QueueBuilder.durable("dashboard.kpi.recompute.queue")
+                .deadLetterExchange(SENTINELLA_DLX_EXCHANGE)
+                .deadLetterRoutingKey("dashboard.kpi.recompute.dlq")
                 .build();
     }
 
@@ -286,8 +394,28 @@ public class RabbitTopologyConfig {
     }
 
     @Bean
+    public Queue alertPredictiveTriggeredDlq() {
+        return QueueBuilder.durable("alert.predictive.triggered.dlq").build();
+    }
+
+    @Bean
     public Queue blockchainRegisterDlq() {
         return QueueBuilder.durable("blockchain.register.dlq").build();
+    }
+
+    @Bean
+    public Queue alertNotificationDispatchDlq() {
+        return QueueBuilder.durable("alert.notification.dispatch.dlq").build();
+    }
+
+    @Bean
+    public Queue reportGenerateDlq() {
+        return QueueBuilder.durable("report.generate.dlq").build();
+    }
+
+    @Bean
+    public Queue dashboardKpiRecomputeDlq() {
+        return QueueBuilder.durable("dashboard.kpi.recompute.dlq").build();
     }
 
     @Bean
@@ -419,6 +547,70 @@ public class RabbitTopologyConfig {
     }
 
     @Bean
+    public Binding subscriptionStripeCancelledBinding(
+            @Qualifier("subscriptionStripeCancelledQueue") Queue queue,
+            @Qualifier("sentinellaExchange") DirectExchange exchange
+    ) {
+        return BindingBuilder.bind(queue).to(exchange).with(SUBSCRIPTION_STRIPE_CANCELLED_ROUTING);
+    }
+
+    @Bean
+    public Binding profilePlanClearedBinding(
+            @Qualifier("profilePlanClearedQueue") Queue queue,
+            @Qualifier("sentinellaExchange") DirectExchange exchange
+    ) {
+        return BindingBuilder.bind(queue).to(exchange).with(PROFILE_PLAN_CLEARED_ROUTING);
+    }
+
+    @Bean
+    public Binding subscriptionPeriodSyncBinding(
+            @Qualifier("subscriptionPeriodSyncQueue") Queue queue,
+            @Qualifier("sentinellaExchange") DirectExchange exchange
+    ) {
+        return BindingBuilder.bind(queue).to(exchange).with(SUBSCRIPTION_PERIOD_SYNC_ROUTING);
+    }
+
+    @Bean
+    public Binding subscriptionPaymentFailedBinding(
+            @Qualifier("subscriptionPaymentFailedQueue") Queue queue,
+            @Qualifier("sentinellaExchange") DirectExchange exchange
+    ) {
+        return BindingBuilder.bind(queue).to(exchange).with(SUBSCRIPTION_PAYMENT_FAILED_ROUTING);
+    }
+
+    @Bean
+    public Binding billingRenewalReminderBinding(
+            @Qualifier("billingRenewalReminderQueue") Queue queue,
+            @Qualifier("sentinellaExchange") DirectExchange exchange
+    ) {
+        return BindingBuilder.bind(queue).to(exchange).with(BILLING_RENEWAL_REMINDER_ROUTING);
+    }
+
+    @Bean
+    public Binding billingServiceSuspendedBinding(
+            @Qualifier("billingServiceSuspendedQueue") Queue queue,
+            @Qualifier("sentinellaExchange") DirectExchange exchange
+    ) {
+        return BindingBuilder.bind(queue).to(exchange).with(BILLING_SERVICE_SUSPENDED_ROUTING);
+    }
+
+    @Bean
+    public Binding billingDunningRetryBinding(
+            @Qualifier("billingDunningRetryQueue") Queue queue,
+            @Qualifier("sentinellaExchange") DirectExchange exchange
+    ) {
+        return BindingBuilder.bind(queue).to(exchange).with(BILLING_DUNNING_RETRY_ROUTING);
+    }
+
+    @Bean
+    public Binding relaveCreatedBinding(
+            @Qualifier("relaveCreatedQueue") Queue queue,
+            @Qualifier("sentinellaExchange") DirectExchange exchange
+    ) {
+        return BindingBuilder.bind(queue).to(exchange).with(RELAVE_CREATED_ROUTING);
+    }
+
+    @Bean
     public Binding sensorRegisteredBinding(
             @Qualifier("sensorRegisteredQueue") Queue queue,
             @Qualifier("sentinellaExchange") DirectExchange exchange
@@ -435,11 +627,43 @@ public class RabbitTopologyConfig {
     }
 
     @Bean
+    public Binding alertPredictiveTriggeredBinding(
+            @Qualifier("alertPredictiveTriggeredQueue") Queue queue,
+            @Qualifier("sentinellaExchange") DirectExchange exchange
+    ) {
+        return BindingBuilder.bind(queue).to(exchange).with(ALERT_PREDICTIVE_TRIGGERED_ROUTING);
+    }
+
+    @Bean
     public Binding blockchainRegisterBinding(
             @Qualifier("blockchainRegisterQueue") Queue queue,
             @Qualifier("sentinellaExchange") DirectExchange exchange
     ) {
         return BindingBuilder.bind(queue).to(exchange).with(BLOCKCHAIN_REGISTER_ROUTING);
+    }
+
+    @Bean
+    public Binding alertNotificationDispatchBinding(
+            @Qualifier("alertNotificationDispatchQueue") Queue queue,
+            @Qualifier("sentinellaExchange") DirectExchange exchange
+    ) {
+        return BindingBuilder.bind(queue).to(exchange).with(ALERT_NOTIFICATION_DISPATCH_ROUTING);
+    }
+
+    @Bean
+    public Binding reportGenerateBinding(
+            @Qualifier("reportGenerateQueue") Queue queue,
+            @Qualifier("sentinellaExchange") DirectExchange exchange
+    ) {
+        return BindingBuilder.bind(queue).to(exchange).with(REPORT_GENERATE_ROUTING);
+    }
+
+    @Bean
+    public Binding dashboardKpiRecomputeBinding(
+            @Qualifier("dashboardKpiRecomputeQueue") Queue queue,
+            @Qualifier("sentinellaExchange") DirectExchange exchange
+    ) {
+        return BindingBuilder.bind(queue).to(exchange).with(DASHBOARD_KPI_RECOMPUTE_ROUTING);
     }
 
     @Bean
@@ -587,11 +811,43 @@ public class RabbitTopologyConfig {
     }
 
     @Bean
+    public Binding alertPredictiveTriggeredDlqBinding(
+            @Qualifier("alertPredictiveTriggeredDlq") Queue dlq,
+            @Qualifier("sentinellaDlxExchange") DirectExchange dlxExchange
+    ) {
+        return BindingBuilder.bind(dlq).to(dlxExchange).with("alert.predictive.triggered.dlq");
+    }
+
+    @Bean
     public Binding blockchainRegisterDlqBinding(
             @Qualifier("blockchainRegisterDlq") Queue dlq,
             @Qualifier("sentinellaDlxExchange") DirectExchange dlxExchange
     ) {
         return BindingBuilder.bind(dlq).to(dlxExchange).with("blockchain.register.dlq");
+    }
+
+    @Bean
+    public Binding alertNotificationDispatchDlqBinding(
+            @Qualifier("alertNotificationDispatchDlq") Queue dlq,
+            @Qualifier("sentinellaDlxExchange") DirectExchange dlxExchange
+    ) {
+        return BindingBuilder.bind(dlq).to(dlxExchange).with("alert.notification.dispatch.dlq");
+    }
+
+    @Bean
+    public Binding reportGenerateDlqBinding(
+            @Qualifier("reportGenerateDlq") Queue dlq,
+            @Qualifier("sentinellaDlxExchange") DirectExchange dlxExchange
+    ) {
+        return BindingBuilder.bind(dlq).to(dlxExchange).with("report.generate.dlq");
+    }
+
+    @Bean
+    public Binding dashboardKpiRecomputeDlqBinding(
+            @Qualifier("dashboardKpiRecomputeDlq") Queue dlq,
+            @Qualifier("sentinellaDlxExchange") DirectExchange dlxExchange
+    ) {
+        return BindingBuilder.bind(dlq).to(dlxExchange).with("dashboard.kpi.recompute.dlq");
     }
 
     @Bean
