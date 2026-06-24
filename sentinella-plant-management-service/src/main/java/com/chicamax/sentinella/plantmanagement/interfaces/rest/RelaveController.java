@@ -44,9 +44,10 @@ public class RelaveController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','PLANT_MANAGER','FIELD_OPERATOR')")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','PLANT_MANAGER','FIELD_OPERATOR','READ_ONLY')")
     public ResponseEntity<List<RelaveResource>> listRelaves(@AuthenticationPrincipal Jwt jwt) {
         var content = relaveQueryService.findAll().stream()
+                .filter(relave -> authorizationScopeService.canAccessOrganization(jwt, relave.getOrganizationId()))
                 .filter(relave -> authorizationScopeService.canAccessDam(jwt, relave.getTailingDamId()))
                 .map(relaveAssembler::toResource)
                 .toList();
@@ -61,6 +62,9 @@ public class RelaveController {
     ) {
         var relave = relaveQueryService.findById(relaveId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Relave no encontrado"));
+        if (!authorizationScopeService.canAccessOrganization(jwt, relave.getOrganizationId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sin acceso a la organización");
+        }
         if (!authorizationScopeService.canAccessDam(jwt, relave.getTailingDamId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sin acceso al tranque");
         }
@@ -69,8 +73,15 @@ public class RelaveController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','PLANT_MANAGER')")
-    public ResponseEntity<RelaveResource> createRelave(@Valid @RequestBody CreateRelaveResource resource) {
-        var created = relaveCommandService.create(relaveAssembler.toCommand(resource));
+    public ResponseEntity<RelaveResource> createRelave(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody CreateRelaveResource resource
+    ) {
+        UUID organizationId = authorizationScopeService.requireOrganizationId(jwt);
+        UUID userId = UUID.fromString(jwt.getSubject());
+        var created = relaveCommandService.create(
+                relaveAssembler.toCommand(resource, organizationId, userId)
+        );
         return ResponseEntity.ok(relaveAssembler.toResource(created));
     }
 }

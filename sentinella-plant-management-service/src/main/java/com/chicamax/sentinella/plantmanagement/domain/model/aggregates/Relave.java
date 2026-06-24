@@ -24,6 +24,9 @@ public class Relave extends AuditableAbstractAggregateRoot<Relave> {
     @Column(name = "tailing_dam_id", nullable = false)
     private UUID tailingDamId;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     private BigDecimal capacity;
 
     private BigDecimal latitude;
@@ -43,6 +46,7 @@ public class Relave extends AuditableAbstractAggregateRoot<Relave> {
             UUID id,
             String name,
             UUID tailingDamId,
+            UUID organizationId,
             BigDecimal capacity,
             BigDecimal latitude,
             BigDecimal longitude,
@@ -51,6 +55,7 @@ public class Relave extends AuditableAbstractAggregateRoot<Relave> {
         this.id = id;
         this.name = name;
         this.tailingDamId = tailingDamId;
+        this.organizationId = organizationId;
         this.capacity = capacity;
         this.latitude = latitude;
         this.longitude = longitude;
@@ -68,6 +73,10 @@ public class Relave extends AuditableAbstractAggregateRoot<Relave> {
 
     public UUID getTailingDamId() {
         return tailingDamId;
+    }
+
+    public UUID getOrganizationId() {
+        return organizationId;
     }
 
     public BigDecimal getCapacity() {

@@ -8,8 +8,11 @@ import com.chicamax.sentinella.reports.infrastructure.integration.ReportDataColl
 import com.chicamax.sentinella.reports.infrastructure.integration.ReportDataset;
 import com.chicamax.sentinella.reports.infrastructure.persistence.jpa.ReportRepository;
 import com.chicamax.sentinella.reports.infrastructure.render.ReportFileRenderer;
+import com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants;
 import com.chicamax.sentinella.shared.infrastructure.mail.SendGridMailClient;
+import com.chicamax.sentinella.shared.infrastructure.messaging.events.ReportGenerateMessage;
 import java.util.UUID;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,19 +25,42 @@ public class ReportCommandServiceImpl implements ReportCommandService {
     private final ReportFileRenderer reportFileRenderer;
     private final ReportDataCollector reportDataCollector;
     private final ObjectProvider<SendGridMailClient> sendGridMailClient;
+    private final RabbitTemplate rabbitTemplate;
 
     public ReportCommandServiceImpl(
             ReportRepository reportRepository,
             StorageService storageService,
             ReportFileRenderer reportFileRenderer,
             ReportDataCollector reportDataCollector,
-            ObjectProvider<SendGridMailClient> sendGridMailClient
+            ObjectProvider<SendGridMailClient> sendGridMailClient,
+            RabbitTemplate rabbitTemplate
     ) {
         this.reportRepository = reportRepository;
         this.storageService = storageService;
         this.reportFileRenderer = reportFileRenderer;
         this.reportDataCollector = reportDataCollector;
         this.sendGridMailClient = sendGridMailClient;
+        this.rabbitTemplate = rabbitTemplate;
+    }
+
+    @Override
+    public void enqueue(GenerateReportCommand command, String bearerToken) {
+        UUID reportId = UUID.randomUUID();
+        rabbitTemplate.convertAndSend(
+                SentinellaMessagingConstants.SENTINELLA_EXCHANGE,
+                SentinellaMessagingConstants.REPORT_GENERATE_ROUTING,
+                new ReportGenerateMessage(
+                        reportId,
+                        command.type().name(),
+                        command.format().name(),
+                        command.tailingDamId(),
+                        command.from(),
+                        command.to(),
+                        command.generatedBy(),
+                        command.notifyEmail(),
+                        bearerToken
+                )
+        );
     }
 
     @Override

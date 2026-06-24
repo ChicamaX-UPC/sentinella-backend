@@ -5,4 +5,6 @@ import com.chicamax.sentinella.reports.domain.model.commands.GenerateReportComma
 
 public interface ReportCommandService {
     Report generate(GenerateReportCommand command, String bearerToken);
+
+    void enqueue(GenerateReportCommand command, String bearerToken);
 }

@@ -36,11 +36,6 @@ public class SimulationScenarioQueryServiceImpl implements SimulationScenarioQue
         UUID userId = UUID.fromString(jwt.getSubject());
         Set<UUID> damIds = authorizationScopeService.extractDamIds(jwt);
 
-        if ("SYSTEM_ADMIN".equals(role)) {
-            return repository.findAll().stream()
-                    .sorted(Comparator.comparing(SimulationScenario::getUpdatedAt).reversed())
-                    .toList();
-        }
         if ("READ_ONLY".equals(role)) {
             if (damIds.isEmpty()) {
                 return repository.findByIsPublicTrue().stream()
@@ -51,7 +46,7 @@ public class SimulationScenarioQueryServiceImpl implements SimulationScenarioQue
                     .sorted(Comparator.comparing(SimulationScenario::getUpdatedAt).reversed())
                     .toList();
         }
-        // PLANT_MANAGER (u otros roles autorizados en el controlador)
+        // PLANT_MANAGER, SYSTEM_ADMIN (admin de empresa) y otros roles con tranques asignados
         if (damIds.isEmpty()) {
             return mergeDistinct(
                     repository.findByCreatedBy(userId),
@@ -87,16 +82,13 @@ public class SimulationScenarioQueryServiceImpl implements SimulationScenarioQue
     public boolean canRead(Jwt jwt, SimulationScenario scenario) {
         String role = jwt.getClaimAsString("role");
         UUID userId = UUID.fromString(jwt.getSubject());
-        if ("SYSTEM_ADMIN".equals(role)) {
-            return true;
-        }
         if (!authorizationScopeService.canAccessDam(jwt, scenario.getTailingDamId())) {
             return false;
         }
         if ("READ_ONLY".equals(role)) {
             return scenario.isPublic();
         }
-        if ("PLANT_MANAGER".equals(role)) {
+        if ("PLANT_MANAGER".equals(role) || "SYSTEM_ADMIN".equals(role)) {
             return scenario.isPublic() || scenario.getCreatedBy().equals(userId);
         }
         return false;

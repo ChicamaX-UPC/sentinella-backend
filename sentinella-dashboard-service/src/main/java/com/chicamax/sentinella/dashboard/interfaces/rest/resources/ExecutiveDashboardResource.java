@@ -4,6 +4,7 @@ public record ExecutiveDashboardResource(
         long totalNodes,
         long activeAlerts,
         long criticalAlerts,
-        long nodesWithRecentData
+        long nodesWithRecentData,
+        long predictiveRiskNodes
 ) {
 }

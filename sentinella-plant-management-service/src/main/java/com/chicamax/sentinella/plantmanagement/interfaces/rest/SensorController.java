@@ -4,6 +4,7 @@ import com.chicamax.sentinella.plantmanagement.domain.services.SensorCommandServ
 import com.chicamax.sentinella.plantmanagement.interfaces.rest.resources.NodeResource;
 import com.chicamax.sentinella.plantmanagement.interfaces.rest.resources.RegisterNodeResource;
 import com.chicamax.sentinella.plantmanagement.interfaces.rest.transform.SensorAssembler;
+import com.chicamax.sentinella.shared.infrastructure.security.SubscriptionGuard;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
@@ -21,10 +22,16 @@ public class SensorController {
 
     private final SensorCommandService sensorCommandService;
     private final SensorAssembler sensorAssembler;
+    private final SubscriptionGuard subscriptionGuard;
 
-    public SensorController(SensorCommandService sensorCommandService, SensorAssembler sensorAssembler) {
+    public SensorController(
+            SensorCommandService sensorCommandService,
+            SensorAssembler sensorAssembler,
+            SubscriptionGuard subscriptionGuard
+    ) {
         this.sensorCommandService = sensorCommandService;
         this.sensorAssembler = sensorAssembler;
+        this.subscriptionGuard = subscriptionGuard;
     }
 
     @PostMapping
@@ -33,6 +40,8 @@ public class SensorController {
             @Valid @RequestBody RegisterNodeResource resource,
             @AuthenticationPrincipal Jwt jwt
     ) {
+        subscriptionGuard.requireActiveSubscription(jwt);
+        subscriptionGuard.requireSensorCapacity(jwt, 1);
         UUID ownerUserId = jwt != null ? UUID.fromString(jwt.getSubject()) : null;
         var created = sensorCommandService.register(sensorAssembler.toCommand(resource, ownerUserId));
         return ResponseEntity.ok(sensorAssembler.toResource(created));

@@ -56,7 +56,7 @@ public class ReportsController {
 
     @PostMapping("/generate")
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','PLANT_MANAGER')")
-    public ResponseEntity<ReportResource> generate(
+    public ResponseEntity<Void> generate(
             @Valid @RequestBody GenerateReportResource resource,
             @AuthenticationPrincipal Jwt jwt
     ) {
@@ -64,8 +64,8 @@ public class ReportsController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sin acceso al tranque solicitado");
         }
         UUID userId = UUID.fromString(jwt.getSubject());
-        var report = reportCommandService.generate(reportAssembler.toCommand(resource, userId), jwt.getTokenValue());
-        return ResponseEntity.ok(reportAssembler.toResource(report));
+        reportCommandService.enqueue(reportAssembler.toCommand(resource, userId), jwt.getTokenValue());
+        return ResponseEntity.accepted().build();
     }
 
     @GetMapping

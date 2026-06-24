@@ -6,6 +6,8 @@ import java.util.UUID;
 public record CreateRelaveCommand(
         String name,
         UUID tailingDamId,
+        UUID organizationId,
+        UUID createdByUserId,
         BigDecimal capacity,
         BigDecimal latitude,
         BigDecimal longitude,

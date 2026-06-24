@@ -1,6 +1,10 @@
 server:
   port: ${SERVER_PORT:8080}
 
+sentinella:
+  openapi:
+    public: ${SENTINELLA_OPENAPI_PUBLIC:true}
+
 spring:
   application:
     name: sentinella-api-gateway
@@ -44,6 +48,13 @@ spring:
           uri: ${MONITORING_SERVICE_URL:http://localhost:8082}
           predicates:
             - Path=/api/v1/nodes,/api/v1/nodes/**
+            - Method=GET
+          filters:
+            - StripPrefix=1
+        - id: monitoring-analytics
+          uri: ${MONITORING_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/analytics,/api/v1/analytics/**
             - Method=GET
           filters:
             - StripPrefix=1

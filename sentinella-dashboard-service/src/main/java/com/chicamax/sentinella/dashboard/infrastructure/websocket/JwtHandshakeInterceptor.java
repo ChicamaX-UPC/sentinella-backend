@@ -1,7 +1,9 @@
 package com.chicamax.sentinella.dashboard.infrastructure.websocket;
 
+import com.chicamax.sentinella.dashboard.infrastructure.integration.IamWsTicketClient;
 import java.net.URI;
-import java.util.Arrays;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.http.server.ServerHttpRequest;
@@ -16,9 +18,11 @@ import org.springframework.web.socket.server.HandshakeInterceptor;
 public class JwtHandshakeInterceptor implements HandshakeInterceptor {
 
     private final JwtDecoder jwtDecoder;
+    private final IamWsTicketClient iamWsTicketClient;
 
-    public JwtHandshakeInterceptor(JwtDecoder jwtDecoder) {
+    public JwtHandshakeInterceptor(JwtDecoder jwtDecoder, IamWsTicketClient iamWsTicketClient) {
         this.jwtDecoder = jwtDecoder;
+        this.iamWsTicketClient = iamWsTicketClient;
     }
 
     @Override
@@ -28,7 +32,20 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
             WebSocketHandler wsHandler,
             Map<String, Object> attributes
     ) {
-        String token = extractToken(request.getURI());
+        String ticket = queryParam(request.getURI(), "ticket");
+        if (ticket != null && !ticket.isBlank()) {
+            return iamWsTicketClient.consume(ticket)
+                    .map(consumed -> {
+                        attributes.put("userId", consumed.userId().toString());
+                        if (consumed.role() != null && !consumed.role().isBlank()) {
+                            attributes.put("role", consumed.role());
+                        }
+                        return true;
+                    })
+                    .orElse(false);
+        }
+
+        String token = queryParam(request.getURI(), "token");
         if (token == null || token.isBlank()) {
             return false;
         }
@@ -54,13 +71,14 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
     ) {
     }
 
-    private String extractToken(URI uri) {
+    private static String queryParam(URI uri, String name) {
         if (uri == null || uri.getQuery() == null || uri.getQuery().isBlank()) {
             return null;
         }
-        Optional<String> tokenPair = Arrays.stream(uri.getQuery().split("&"))
-                .filter(part -> part.startsWith("token="))
+        Optional<String> pair = java.util.Arrays.stream(uri.getQuery().split("&"))
+                .filter(part -> part.startsWith(name + "="))
                 .findFirst();
-        return tokenPair.map(part -> part.substring("token=".length())).orElse(null);
+        return pair.map(part -> URLDecoder.decode(part.substring(name.length() + 1), StandardCharsets.UTF_8))
+                .orElse(null);
     }
 }
