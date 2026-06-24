@@ -1,0 +1,58 @@
+# Perfil producción: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Requiere SENTINELLA_INTERNAL_SERVICE_KEY distinta de sentinella-internal-dev en .env
+services:
+  iam-service:
+    environment:
+      SENTINELLA_SEED_ENABLED: "false"
+      SENTINELLA_AUTH_OPEN_REGISTRATION: "false"
+      SENTINELLA_INTERNAL_REQUIRE_KEY: "true"
+      SENTINELLA_OPENAPI_PUBLIC: "false"
+
+  monitoring-service:
+    environment:
+      SENTINELLA_SEED_ENABLED: "false"
+      SENTINELLA_INTERNAL_REQUIRE_KEY: "true"
+      SENTINELLA_OPENAPI_PUBLIC: "false"
+
+  alerts-service:
+    environment:
+      SENTINELLA_SEED_ENABLED: "false"
+      SENTINELLA_OPENAPI_PUBLIC: "false"
+
+  plant-management-service:
+    environment:
+      SENTINELLA_SEED_ENABLED: "false"
+      SENTINELLA_OPENAPI_PUBLIC: "false"
+
+  simulations-service:
+    environment:
+      SENTINELLA_SEED_ENABLED: "false"
+      SENTINELLA_OPENAPI_PUBLIC: "false"
+
+  api-gateway:
+    environment:
+      SENTINELLA_OPENAPI_PUBLIC: "false"
+
+  dashboard-service:
+    environment:
+      SENTINELLA_OPENAPI_PUBLIC: "false"
+
+  reports-service:
+    environment:
+      SENTINELLA_OPENAPI_PUBLIC: "false"
+
+  payments-service:
+    environment:
+      SENTINELLA_OPENAPI_PUBLIC: "false"
+
+  subscriptions-service:
+    environment:
+      SENTINELLA_OPENAPI_PUBLIC: "false"
+
+  profiles-service:
+    environment:
+      SENTINELLA_OPENAPI_PUBLIC: "false"
+
+  blockchain-service:
+    environment:
+      SENTINELLA_OPENAPI_PUBLIC: "false"
