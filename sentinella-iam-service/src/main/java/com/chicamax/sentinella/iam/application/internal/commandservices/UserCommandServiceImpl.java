@@ -1,5 +1,6 @@
 package com.chicamax.sentinella.iam.application.internal.commandservices;
 
+import com.chicamax.sentinella.iam.domain.model.aggregates.Organization;
 import com.chicamax.sentinella.iam.domain.model.aggregates.User;
 import com.chicamax.sentinella.iam.domain.model.commands.CreateUserCommand;
 import com.chicamax.sentinella.iam.domain.model.commands.ForgotPasswordCommand;
@@ -18,16 +19,18 @@ import com.chicamax.sentinella.iam.domain.services.HashingService;
 import com.chicamax.sentinella.iam.domain.services.TokenService;
 import com.chicamax.sentinella.iam.domain.services.UserCommandService;
 import com.chicamax.sentinella.iam.infrastructure.messaging.UserRegisteredRabbitPublisher;
+import com.chicamax.sentinella.iam.infrastructure.persistence.jpa.OrganizationRepository;
 import com.chicamax.sentinella.iam.infrastructure.persistence.jpa.UserRepository;
+import com.chicamax.sentinella.iam.infrastructure.security.TokenRevocationService;
 import com.chicamax.sentinella.shared.infrastructure.messaging.events.UserRegisteredMessage;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
 
 @Service
 public class UserCommandServiceImpl implements UserCommandService {
@@ -37,21 +40,27 @@ public class UserCommandServiceImpl implements UserCommandService {
     private static final int RESET_TOKEN_MINUTES = 15;
 
     private final UserRepository userRepository;
+    private final OrganizationRepository organizationRepository;
     private final HashingService hashingService;
     private final TokenService tokenService;
     private final UserRegisteredRabbitPublisher userRegisteredRabbitPublisher;
+    private final TokenRevocationService tokenRevocationService;
     private final Map<String, ResetTokenData> passwordResetTokens = new ConcurrentHashMap<>();
 
     public UserCommandServiceImpl(
             UserRepository userRepository,
+            OrganizationRepository organizationRepository,
             HashingService hashingService,
             TokenService tokenService,
-            UserRegisteredRabbitPublisher userRegisteredRabbitPublisher
+            UserRegisteredRabbitPublisher userRegisteredRabbitPublisher,
+            TokenRevocationService tokenRevocationService
     ) {
         this.userRepository = userRepository;
+        this.organizationRepository = organizationRepository;
         this.hashingService = hashingService;
         this.tokenService = tokenService;
         this.userRegisteredRabbitPublisher = userRegisteredRabbitPublisher;
+        this.tokenRevocationService = tokenRevocationService;
     }
 
     @Override
@@ -79,16 +88,25 @@ public class UserCommandServiceImpl implements UserCommandService {
     @Override
     @Transactional
     public AuthTokens register(SignUpCommand command) {
-        createUser(new CreateUserCommand(
+        Organization organization = organizationRepository.save(
+                new Organization(UUID.randomUUID(), command.companyName())
+        );
+        User saved = persistNewUser(
                 command.email(),
                 command.password(),
                 command.fullName(),
-                Role.READ_ONLY,
+                Role.PLANT_MANAGER,
+                organization.getId(),
                 new UUID[0]
+        );
+        userRegisteredRabbitPublisher.publish(new UserRegisteredMessage(
+                saved.getId(),
+                organization.getId(),
+                saved.getEmail(),
+                saved.getFullName(),
+                command.companyName()
         ));
-        User user = userRepository.findByEmail(command.email())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Usuario no creado"));
-        return tokenService.issueTokens(user);
+        return tokenService.issueTokens(saved);
     }
 
     @Override
@@ -106,6 +124,21 @@ public class UserCommandServiceImpl implements UserCommandService {
 
     @Override
     public void logout(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            return;
+        }
+        String token = authorizationHeader.substring(7).trim();
+        if (token.isBlank()) {
+            return;
+        }
+        try {
+            var decoded = tokenService.decode(token);
+            if (decoded.type() != TokenType.ACCESS) {
+                return;
+            }
+            tokenRevocationService.revoke(token, decoded.expiresAt());
+        } catch (Exception ignored) {
+        }
     }
 
     @Override
@@ -132,28 +165,58 @@ public class UserCommandServiceImpl implements UserCommandService {
     @Override
     @Transactional
     public User createUser(CreateUserCommand command) {
-        if (userRepository.existsByEmail(command.email())) {
+        if (command.role() == Role.SYSTEM_ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede crear administradores de plataforma");
+        }
+        User saved = persistNewUser(
+                command.email(),
+                command.password(),
+                command.fullName(),
+                command.role(),
+                command.organizationId(),
+                command.tailingDamIds()
+        );
+        userRegisteredRabbitPublisher.publish(new UserRegisteredMessage(
+                saved.getId(),
+                saved.getOrganizationId(),
+                saved.getEmail(),
+                saved.getFullName(),
+                null
+        ));
+        return saved;
+    }
+
+    private User persistNewUser(
+            String email,
+            String password,
+            String fullName,
+            Role role,
+            UUID organizationId,
+            UUID[] tailingDamIds
+    ) {
+        if (userRepository.existsByEmail(email)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "El email ya existe");
         }
 
         User user = new User(
                 UUID.randomUUID(),
-                command.email(),
-                hashingService.hash(command.password()),
-                command.fullName(),
-                command.role(),
-                command.tailingDamIds()
+                email,
+                hashingService.hash(password),
+                fullName,
+                role,
+                organizationId,
+                tailingDamIds
         );
-        User saved = userRepository.save(user);
-        userRegisteredRabbitPublisher.publish(new UserRegisteredMessage(saved.getId(), saved.getEmail(), saved.getFullName()));
-        return saved;
+        return userRepository.save(user);
     }
 
     @Override
     @Transactional
     public User updateRole(UpdateUserRoleCommand command) {
-        User user = userRepository.findById(command.userId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        User user = requireUser(command.userId());
+        if (command.role() == Role.SYSTEM_ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Rol no permitido");
+        }
         user.updateRole(command.role());
         return userRepository.save(user);
     }
@@ -184,8 +247,7 @@ public class UserCommandServiceImpl implements UserCommandService {
     @Override
     @Transactional
     public User updatePermissions(UpdateUserPermissionsCommand command) {
-        User user = userRepository.findById(command.userId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        User user = requireUser(command.userId());
         user.updatePermissions(command.permissions());
         return userRepository.save(user);
     }
@@ -193,8 +255,7 @@ public class UserCommandServiceImpl implements UserCommandService {
     @Override
     @Transactional
     public User updateDetails(UpdateUserDetailsCommand command) {
-        User user = userRepository.findById(command.userId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        User user = requireUser(command.userId());
         user.updateProfileDetails(
                 command.fullName().trim(),
                 blankToNull(command.jobTitle()),
@@ -210,6 +271,22 @@ public class UserCommandServiceImpl implements UserCommandService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado");
         }
         userRepository.deleteById(userId);
+    }
+
+    @Override
+    @Transactional
+    public void assignTailingDam(UUID userId, UUID organizationId, UUID tailingDamId) {
+        User user = requireUser(userId);
+        if (!user.getOrganizationId().equals(organizationId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Usuario fuera de la organización");
+        }
+        user.addTailingDam(tailingDamId);
+        userRepository.save(user);
+    }
+
+    private User requireUser(UUID userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
     }
 
     private static String blankToNull(String value) {

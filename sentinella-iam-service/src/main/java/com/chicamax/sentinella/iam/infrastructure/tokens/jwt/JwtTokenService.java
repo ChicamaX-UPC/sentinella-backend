@@ -51,7 +51,7 @@ public class JwtTokenService implements TokenService {
         UUID userId = UUID.fromString(jwt.getSubject());
         Role role = Role.valueOf(jwt.getClaimAsString("role"));
         TokenType type = TokenType.valueOf(jwt.getClaimAsString("typ"));
-        return new DecodedToken(userId, role, type);
+        return new DecodedToken(userId, role, type, jwt.getExpiresAt());
     }
 
     private String encode(User user, TokenType type, long expirySeconds) {
@@ -65,6 +65,7 @@ public class JwtTokenService implements TokenService {
                 .issuedAt(now)
                 .expiresAt(now.plusSeconds(expirySeconds))
                 .claim("role", user.getRole().name())
+                .claim("organizationId", user.getOrganizationId().toString())
                 .claim("damIds", damIds)
                 .claim("typ", type.name())
                 .build();

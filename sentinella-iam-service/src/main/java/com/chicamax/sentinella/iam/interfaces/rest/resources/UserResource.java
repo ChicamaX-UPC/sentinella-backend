@@ -9,6 +9,7 @@ public record UserResource(
         String email,
         String fullName,
         Role role,
+        UUID organizationId,
         UUID[] tailingDamIds,
         boolean active,
         OffsetDateTime lastLogin,

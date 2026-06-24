@@ -21,7 +21,13 @@ public class UserQueryServiceImpl implements UserQueryService {
 
     @Override
     public List<User> handle(GetAllUsersQuery query) {
-        return userRepository.findAll();
+        if (query.systemWide()) {
+            return userRepository.findAll();
+        }
+        if (query.organizationId() == null) {
+            return List.of();
+        }
+        return userRepository.findByOrganizationIdOrderByFullNameAsc(query.organizationId());
     }
 
     @Override

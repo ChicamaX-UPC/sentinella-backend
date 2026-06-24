@@ -1,6 +1,8 @@
 package com.chicamax.sentinella.iam.domain.model.entities;
 
+import com.chicamax.sentinella.shared.infrastructure.encryption.EncryptedStringConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -17,7 +19,8 @@ public class DeviceToken {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
-    @Column(nullable = false, length = 512)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(nullable = false, length = 1024)
     private String token;
 
     @Column(nullable = false, length = 16)

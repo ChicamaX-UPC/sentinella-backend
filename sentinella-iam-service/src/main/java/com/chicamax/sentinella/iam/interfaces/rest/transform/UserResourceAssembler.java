@@ -29,15 +29,16 @@ public class UserResourceAssembler {
     }
 
     public SignUpCommand toCommand(SignUpResource resource) {
-        return new SignUpCommand(resource.email(), resource.password(), resource.fullName());
+        return new SignUpCommand(resource.email(), resource.password(), resource.fullName(), resource.companyName());
     }
 
-    public CreateUserCommand toCommand(CreateUserResource resource) {
+    public CreateUserCommand toCommand(CreateUserResource resource, UUID organizationId) {
         return new CreateUserCommand(
                 resource.email(),
                 resource.password(),
                 resource.fullName(),
                 resource.role(),
+                organizationId,
                 resource.tailingDamIds()
         );
     }
@@ -74,6 +75,7 @@ public class UserResourceAssembler {
                 user.getEmail(),
                 user.getFullName(),
                 user.getRole(),
+                user.getOrganizationId(),
                 user.getTailingDamIds(),
                 user.isActive(),
                 user.getLastLogin(),

@@ -8,6 +8,7 @@ public record CreateUserCommand(
         String password,
         String fullName,
         Role role,
+        UUID organizationId,
         UUID[] tailingDamIds
 ) {
 }

@@ -3,13 +3,18 @@ package com.chicamax.sentinella.iam.domain.model.aggregates;
 import com.chicamax.sentinella.iam.domain.model.valueobjects.Role;
 import com.chicamax.sentinella.iam.domain.model.valueobjects.RolePermissionDefaults;
 import com.chicamax.sentinella.shared.domain.model.aggregates.AuditableAbstractAggregateRoot;
+import com.chicamax.sentinella.shared.infrastructure.encryption.EncryptedStringConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -34,6 +39,9 @@ public class User extends AuditableAbstractAggregateRoot<User> {
     @Column(nullable = false)
     private Role role;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(name = "tailing_dam_ids", columnDefinition = "uuid[]")
     private UUID[] tailingDamIds;
@@ -57,18 +65,28 @@ public class User extends AuditableAbstractAggregateRoot<User> {
     @Column(name = "job_title", length = 100)
     private String jobTitle;
 
-    @Column(name = "phone", length = 30)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(name = "phone", length = 512)
     private String phone;
 
     protected User() {
     }
 
-    public User(UUID id, String email, String passwordHash, String fullName, Role role, UUID[] tailingDamIds) {
+    public User(
+            UUID id,
+            String email,
+            String passwordHash,
+            String fullName,
+            Role role,
+            UUID organizationId,
+            UUID[] tailingDamIds
+    ) {
         this.id = id;
         this.email = email;
         this.passwordHash = passwordHash;
         this.fullName = fullName;
         this.role = role;
+        this.organizationId = organizationId;
         this.tailingDamIds = tailingDamIds;
         this.permissions = RolePermissionDefaults.toArray(role);
     }
@@ -112,6 +130,18 @@ public class User extends AuditableAbstractAggregateRoot<User> {
         this.permissions = RolePermissionDefaults.validateAndDistinct(explicitPermissions);
     }
 
+    public void addTailingDam(UUID damId) {
+        if (damId == null) {
+            return;
+        }
+        Set<UUID> dams = new LinkedHashSet<>();
+        if (tailingDamIds != null) {
+            dams.addAll(Arrays.asList(tailingDamIds));
+        }
+        dams.add(damId);
+        this.tailingDamIds = dams.toArray(UUID[]::new);
+    }
+
     public String[] getEffectivePermissions() {
         return RolePermissionDefaults.normalize(permissions, role);
     }
@@ -134,6 +164,10 @@ public class User extends AuditableAbstractAggregateRoot<User> {
 
     public Role getRole() {
         return role;
+    }
+
+    public UUID getOrganizationId() {
+        return organizationId;
     }
 
     public UUID[] getTailingDamIds() {

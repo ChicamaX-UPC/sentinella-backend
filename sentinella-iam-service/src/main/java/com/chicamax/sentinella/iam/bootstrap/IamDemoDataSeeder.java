@@ -1,8 +1,10 @@
 package com.chicamax.sentinella.iam.bootstrap;
 
+import com.chicamax.sentinella.iam.domain.model.aggregates.Organization;
 import com.chicamax.sentinella.iam.domain.model.aggregates.User;
 import com.chicamax.sentinella.iam.domain.model.valueobjects.Role;
 import com.chicamax.sentinella.iam.domain.services.HashingService;
+import com.chicamax.sentinella.iam.infrastructure.persistence.jpa.OrganizationRepository;
 import com.chicamax.sentinella.iam.infrastructure.persistence.jpa.UserRepository;
 import com.chicamax.sentinella.shared.bootstrap.demo.SentinellaDemoIds;
 import java.util.UUID;
@@ -16,9 +18,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/**
- * Usuarios demo (misma convención que {@code SentinellaDataSeeder} del monolito).
- */
 @Component
 @Order(100)
 @ConditionalOnProperty(name = "sentinella.seed.enabled", havingValue = "true")
@@ -26,15 +25,18 @@ public class IamDemoDataSeeder implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(IamDemoDataSeeder.class);
 
+    private final OrganizationRepository organizationRepository;
     private final UserRepository userRepository;
     private final HashingService hashingService;
     private final TransactionTemplate transactionTemplate;
 
     public IamDemoDataSeeder(
+            OrganizationRepository organizationRepository,
             UserRepository userRepository,
             HashingService hashingService,
             PlatformTransactionManager transactionManager
     ) {
+        this.organizationRepository = organizationRepository;
         this.userRepository = userRepository;
         this.hashingService = hashingService;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
@@ -51,6 +53,8 @@ public class IamDemoDataSeeder implements ApplicationRunner {
             return;
         }
 
+        organizationRepository.save(new Organization(SentinellaDemoIds.ORGANIZATION_DEMO, "Sentinella Demo"));
+
         UUID[] damScope = new UUID[]{SentinellaDemoIds.TAILING_DAM_CHICAMA_NORTE};
         String hash = hashingService.hash(SentinellaDemoIds.DEMO_PASSWORD);
 
@@ -60,6 +64,7 @@ public class IamDemoDataSeeder implements ApplicationRunner {
                 hash,
                 "María Quispe — Administración TI",
                 Role.SYSTEM_ADMIN,
+                SentinellaDemoIds.ORGANIZATION_DEMO,
                 damScope
         ));
         userRepository.save(new User(
@@ -68,6 +73,7 @@ public class IamDemoDataSeeder implements ApplicationRunner {
                 hash,
                 "Carlos Ríos — Jefe de planta relaves",
                 Role.PLANT_MANAGER,
+                SentinellaDemoIds.ORGANIZATION_DEMO,
                 damScope
         ));
         userRepository.save(new User(
@@ -76,6 +82,7 @@ public class IamDemoDataSeeder implements ApplicationRunner {
                 hash,
                 "Luis Huamán — Operario de relavera",
                 Role.FIELD_OPERATOR,
+                SentinellaDemoIds.ORGANIZATION_DEMO,
                 damScope
         ));
         userRepository.save(new User(
@@ -84,11 +91,12 @@ public class IamDemoDataSeeder implements ApplicationRunner {
                 hash,
                 "Ana Márquez — Solo lectura OEFA",
                 Role.READ_ONLY,
+                SentinellaDemoIds.ORGANIZATION_DEMO,
                 damScope
         ));
 
         log.info(
-                "sentinella.seed (iam): usuarios demo creados (contraseña '{}').",
+                "sentinella.seed (iam): organización y usuarios demo creados (contraseña '{}').",
                 SentinellaDemoIds.DEMO_PASSWORD
         );
     }

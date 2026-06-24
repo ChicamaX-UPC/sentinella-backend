@@ -17,7 +17,7 @@ import java.util.UUID;
 public interface UserCommandService {
     AuthTokens signIn(SignInCommand command);
 
-    /** Registro público (rol READ_ONLY, sin tranques hasta que un admin asigne). */
+    /** Registro público de empresa: crea organización y administrador de planta. */
     AuthTokens register(SignUpCommand command);
 
     AuthTokens refresh(RefreshTokenCommand command);
@@ -39,4 +39,6 @@ public interface UserCommandService {
     User updateDetails(UpdateUserDetailsCommand command);
 
     void deleteUser(UUID userId);
+
+    void assignTailingDam(UUID userId, UUID organizationId, UUID tailingDamId);
 }

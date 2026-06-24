@@ -20,6 +20,7 @@ public final class RolePermissionDefaults {
                     Permission.CLOSE_ALERTS,
                     Permission.REGISTER_ROUNDS,
                     Permission.GENERATE_REPORTS,
+                    Permission.MANAGE_USERS,
                     Permission.MANAGE_SIMULATIONS,
                     Permission.VIEW_SIMULATIONS,
                     Permission.RUN_SIMULATIONS
