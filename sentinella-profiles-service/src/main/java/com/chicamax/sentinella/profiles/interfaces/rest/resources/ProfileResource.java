@@ -6,6 +6,7 @@ public record ProfileResource(
         UUID userId,
         String email,
         String fullName,
+        String companyName,
         String phone,
         String jobTitle,
         String planType,

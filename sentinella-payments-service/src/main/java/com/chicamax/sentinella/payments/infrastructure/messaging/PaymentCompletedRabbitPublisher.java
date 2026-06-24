@@ -24,7 +24,8 @@ public class PaymentCompletedRabbitPublisher {
                         event.userId(),
                         event.planId(),
                         event.amount(),
-                        event.currency()
+                        event.currency(),
+                        event.stripeSubscriptionId()
                 )
         );
     }

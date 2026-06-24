@@ -5,9 +5,11 @@ import com.chicamax.sentinella.shared.infrastructure.web.AppCorsConfiguration;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Import;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication(scanBasePackages = {"com.chicamax.sentinella.subscriptions", "com.chicamax.sentinella.shared"})
 @Import({OpenApiConfiguration.class, AppCorsConfiguration.class})
+@EnableScheduling
 public class SubscriptionsServiceApplication {
 
     public static void main(String[] args) {

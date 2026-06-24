@@ -25,6 +25,12 @@ public class UserProfile extends AuditableAbstractAggregateRoot<UserProfile> {
     @Column(name = "full_name")
     private String fullName;
 
+    @Column(name = "company_name")
+    private String companyName;
+
+    @Column(name = "organization_id")
+    private UUID organizationId;
+
     private String phone;
 
     @Column(name = "job_title")
@@ -46,11 +52,13 @@ public class UserProfile extends AuditableAbstractAggregateRoot<UserProfile> {
     protected UserProfile() {
     }
 
-    public static UserProfile create(UUID userId, String email, String fullName) {
+    public static UserProfile create(UUID userId, UUID organizationId, String email, String fullName, String companyName) {
         UserProfile profile = new UserProfile();
         profile.userId = userId;
+        profile.organizationId = organizationId;
         profile.email = email;
         profile.fullName = fullName;
+        profile.companyName = companyName;
         profile.registerEvent(new ProfileCreatedEvent(userId, email));
         return profile;
     }
@@ -59,6 +67,12 @@ public class UserProfile extends AuditableAbstractAggregateRoot<UserProfile> {
         this.planType = plan.planType();
         this.sensorLimit = plan.sensorLimit();
         this.subscriptionId = plan.subscriptionId();
+    }
+
+    public void clearActivePlan() {
+        this.planType = null;
+        this.sensorLimit = null;
+        this.subscriptionId = null;
     }
 
     public void updateDetails(String fullName, String phone, String jobTitle, String preferencesJson) {
@@ -86,6 +100,10 @@ public class UserProfile extends AuditableAbstractAggregateRoot<UserProfile> {
 
     public String getFullName() {
         return fullName;
+    }
+
+    public String getCompanyName() {
+        return companyName;
     }
 
     public String getPhone() {

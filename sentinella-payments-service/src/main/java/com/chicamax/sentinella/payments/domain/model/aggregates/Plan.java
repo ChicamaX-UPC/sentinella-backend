@@ -32,6 +32,21 @@ public class Plan extends AuditableAbstractAggregateRoot<Plan> {
     @Column(name = "billing_period", nullable = false)
     private String billingPeriod;
 
+    @Column(nullable = false)
+    private boolean active = true;
+
+    @Column(name = "stripe_product_id")
+    private String stripeProductId;
+
+    @Column(name = "stripe_price_id")
+    private String stripePriceId;
+
+    @Column(name = "stripe_setup_price_id")
+    private String stripeSetupPriceId;
+
+    @Column(name = "setup_price_cents", nullable = false)
+    private long setupPriceCents;
+
     protected Plan() {
     }
 
@@ -61,5 +76,25 @@ public class Plan extends AuditableAbstractAggregateRoot<Plan> {
 
     public String getBillingPeriod() {
         return billingPeriod;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public String getStripeProductId() {
+        return stripeProductId;
+    }
+
+    public String getStripePriceId() {
+        return stripePriceId;
+    }
+
+    public String getStripeSetupPriceId() {
+        return stripeSetupPriceId;
+    }
+
+    public long getSetupPriceCents() {
+        return setupPriceCents;
     }
 }

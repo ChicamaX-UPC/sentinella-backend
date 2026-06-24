@@ -6,6 +6,7 @@ import com.chicamax.sentinella.profiles.domain.model.valueobjects.ActivePlanRefe
 import com.chicamax.sentinella.profiles.domain.services.ProfileCommandService;
 import com.chicamax.sentinella.profiles.infrastructure.persistence.jpa.UserProfileRepository;
 import com.chicamax.sentinella.shared.infrastructure.messaging.events.SubscriptionActivatedMessage;
+import com.chicamax.sentinella.shared.infrastructure.messaging.events.SubscriptionCancelledMessage;
 import com.chicamax.sentinella.shared.infrastructure.messaging.events.UserRegisteredMessage;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,8 +32,10 @@ public class ProfileCommandServiceImpl implements ProfileCommandService {
         }
         return userProfileRepository.save(UserProfile.create(
                 message.userId(),
+                message.organizationId(),
                 message.email(),
-                message.fullName()
+                message.fullName(),
+                message.companyName()
         ));
     }
 
@@ -50,9 +53,32 @@ public class ProfileCommandServiceImpl implements ProfileCommandService {
     }
 
     @Override
+    @Transactional
+    public void applySubscriptionCancelled(SubscriptionCancelledMessage message) {
+        userProfileRepository.findById(message.userId()).ifPresent(profile -> {
+            profile.clearActivePlan();
+            userProfileRepository.save(profile);
+        });
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Optional<UserProfile> findByUserId(UUID userId) {
         return userProfileRepository.findById(userId);
+    }
+
+    @Override
+    @Transactional
+    public UserProfile findOrCreateForUser(UUID userId) {
+        return userProfileRepository.findById(userId).orElseGet(() ->
+                userProfileRepository.save(UserProfile.create(
+                        userId,
+                        null,
+                        userId + "@usuarios.sentinella",
+                        "Usuario",
+                        null
+                ))
+        );
     }
 
     @Override

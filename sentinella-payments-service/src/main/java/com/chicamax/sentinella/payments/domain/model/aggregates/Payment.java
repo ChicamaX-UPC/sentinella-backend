@@ -53,7 +53,18 @@ public class Payment extends AuditableAbstractAggregateRoot<Payment> {
         return payment;
     }
 
+    public void attachStripeSessionId(String sessionId) {
+        this.stripeSessionId = sessionId;
+    }
+
+    public boolean isCompleted() {
+        return status == PaymentStatus.COMPLETED;
+    }
+
     public void complete() {
+        if (this.status == PaymentStatus.COMPLETED) {
+            return;
+        }
         this.status = PaymentStatus.COMPLETED;
         BigDecimal amount = BigDecimal.valueOf(amountCents).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         registerEvent(new PaymentCompletedEvent(id, userId, planId, amount, currency));
@@ -81,5 +92,9 @@ public class Payment extends AuditableAbstractAggregateRoot<Payment> {
 
     public String getCurrency() {
         return currency;
+    }
+
+    public String getStripeSessionId() {
+        return stripeSessionId;
     }
 }

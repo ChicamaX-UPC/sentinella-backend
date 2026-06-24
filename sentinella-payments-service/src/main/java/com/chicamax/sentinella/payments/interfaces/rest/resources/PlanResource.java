@@ -7,6 +7,7 @@ public record PlanResource(
         String code,
         String name,
         long priceCents,
+        long setupPriceCents,
         String currency,
         int sensorLimit,
         String billingPeriod

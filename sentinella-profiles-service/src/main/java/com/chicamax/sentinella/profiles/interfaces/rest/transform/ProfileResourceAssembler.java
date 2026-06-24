@@ -15,6 +15,7 @@ public class ProfileResourceAssembler {
                 profile.getUserId(),
                 profile.getEmail(),
                 profile.getFullName(),
+                profile.getCompanyName(),
                 profile.getPhone(),
                 profile.getJobTitle(),
                 profile.getPlanType(),

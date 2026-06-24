@@ -41,4 +41,14 @@ public class SubscriptionHistoryEntry {
         entry.createdAt = OffsetDateTime.now();
         return entry;
     }
+
+    public static SubscriptionHistoryEntry cancelled(UUID subscriptionId, String payloadJson) {
+        SubscriptionHistoryEntry entry = new SubscriptionHistoryEntry();
+        entry.id = UUID.randomUUID();
+        entry.subscriptionId = subscriptionId;
+        entry.eventType = "CANCELLED";
+        entry.payload = payloadJson;
+        entry.createdAt = OffsetDateTime.now();
+        return entry;
+    }
 }
