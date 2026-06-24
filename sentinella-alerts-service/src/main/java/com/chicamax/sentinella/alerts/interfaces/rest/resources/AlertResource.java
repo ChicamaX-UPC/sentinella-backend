@@ -1,5 +1,6 @@
 package com.chicamax.sentinella.alerts.interfaces.rest.resources;
 
+import com.chicamax.sentinella.alerts.domain.model.valueobjects.AlertKind;
 import com.chicamax.sentinella.alerts.domain.model.valueobjects.AlertSeverity;
 import com.chicamax.sentinella.alerts.domain.model.valueobjects.AlertStatus;
 import java.math.BigDecimal;
@@ -19,6 +20,9 @@ public record AlertResource(
         UUID assignedTo,
         UUID closedBy,
         OffsetDateTime closedAt,
-        String resolutionNotes
+        String resolutionNotes,
+        AlertKind alertKind,
+        Long leadTimeMinutes,
+        OffsetDateTime estimatedBreachAt
 ) {
 }

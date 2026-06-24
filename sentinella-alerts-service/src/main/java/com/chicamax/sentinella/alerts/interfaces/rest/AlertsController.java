@@ -11,10 +11,12 @@ import com.chicamax.sentinella.alerts.interfaces.rest.resources.AlertAuditResour
 import com.chicamax.sentinella.alerts.interfaces.rest.resources.AlertResource;
 import com.chicamax.sentinella.alerts.interfaces.rest.resources.UpdateAlertStatusResource;
 import com.chicamax.sentinella.alerts.interfaces.rest.transform.AlertAssembler;
+import com.chicamax.sentinella.alerts.infrastructure.integration.AlertScopeService;
 import com.chicamax.sentinella.alerts.infrastructure.integration.MonitoringNodeAccessClient;
 import com.chicamax.sentinella.shared.interfaces.rest.PageResponse;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -38,17 +40,20 @@ public class AlertsController {
     private final AlertQueryService alertQueryService;
     private final AlertAssembler alertAssembler;
     private final MonitoringNodeAccessClient monitoringNodeAccessClient;
+    private final AlertScopeService alertScopeService;
 
     public AlertsController(
             AlertCommandService alertCommandService,
             AlertQueryService alertQueryService,
             AlertAssembler alertAssembler,
-            MonitoringNodeAccessClient monitoringNodeAccessClient
+            MonitoringNodeAccessClient monitoringNodeAccessClient,
+            AlertScopeService alertScopeService
     ) {
         this.alertCommandService = alertCommandService;
         this.alertQueryService = alertQueryService;
         this.alertAssembler = alertAssembler;
         this.monitoringNodeAccessClient = monitoringNodeAccessClient;
+        this.alertScopeService = alertScopeService;
     }
 
     @GetMapping
@@ -56,6 +61,7 @@ public class AlertsController {
             @RequestParam(required = false) AlertStatus status,
             @RequestParam(required = false) AlertSeverity severity,
             @RequestParam(required = false) UUID nodeId,
+            @RequestParam(required = false) String damIds,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int limit,
             @AuthenticationPrincipal Jwt jwt
@@ -63,12 +69,31 @@ public class AlertsController {
         if (nodeId != null && !monitoringNodeAccessClient.canAccessNode(jwt, nodeId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sin acceso al nodo solicitado");
         }
-        var result = alertQueryService.handle(new GetActiveAlertsQuery(status, severity, nodeId, page, limit));
+        Set<UUID> scopedNodeIds = alertScopeService.resolveNodeIdsForDams(jwt, parseDamIds(damIds));
+        var result = alertQueryService.handle(new GetActiveAlertsQuery(
+                status,
+                severity,
+                nodeId,
+                page,
+                limit,
+                true,
+                scopedNodeIds
+        ));
         var content = result.getContent().stream()
-                .filter(alert -> monitoringNodeAccessClient.canAccessNode(jwt, alert.getNodeId()))
                 .map(alertAssembler::toResource)
                 .toList();
         return ResponseEntity.ok(PageResponse.of(content, result.getNumber(), result.getSize(), result.getTotalElements()));
+    }
+
+    private static Set<UUID> parseDamIds(String damIds) {
+        if (damIds == null || damIds.isBlank()) {
+            return Set.of();
+        }
+        return java.util.Arrays.stream(damIds.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .map(UUID::fromString)
+                .collect(java.util.stream.Collectors.toSet());
     }
 
     @GetMapping("/{alertId}")

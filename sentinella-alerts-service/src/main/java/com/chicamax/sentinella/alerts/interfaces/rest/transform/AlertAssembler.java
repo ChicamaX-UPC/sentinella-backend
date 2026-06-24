@@ -23,7 +23,10 @@ public class AlertAssembler {
                 alert.getAssignedTo(),
                 alert.getClosedBy(),
                 alert.getClosedAt(),
-                alert.getResolutionNotes()
+                alert.getResolutionNotes(),
+                alert.getAlertKind(),
+                alert.getLeadTimeMinutes(),
+                alert.getEstimatedBreachAt()
         );
     }
 

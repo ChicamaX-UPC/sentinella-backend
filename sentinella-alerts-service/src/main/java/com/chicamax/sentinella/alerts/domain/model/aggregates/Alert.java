@@ -1,5 +1,6 @@
 package com.chicamax.sentinella.alerts.domain.model.aggregates;
 
+import com.chicamax.sentinella.alerts.domain.model.valueobjects.AlertKind;
 import com.chicamax.sentinella.alerts.domain.model.valueobjects.AlertSeverity;
 import com.chicamax.sentinella.alerts.domain.model.valueobjects.AlertStatus;
 import com.chicamax.sentinella.shared.domain.model.aggregates.AuditableAbstractAggregateRoot;
@@ -60,10 +61,34 @@ public class Alert extends AuditableAbstractAggregateRoot<Alert> {
     @Column(name = "resolution_notes")
     private String resolutionNotes;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "alert_kind", nullable = false)
+    private AlertKind alertKind;
+
+    @Column(name = "lead_time_minutes")
+    private Long leadTimeMinutes;
+
+    @Column(name = "estimated_breach_at")
+    private OffsetDateTime estimatedBreachAt;
+
     protected Alert() {
     }
 
     public Alert(UUID id, UUID ruleId, UUID nodeId, String sensorType, BigDecimal triggeredValue, AlertSeverity severity) {
+        this(id, ruleId, nodeId, sensorType, triggeredValue, severity, AlertKind.REACTIVE, null, null);
+    }
+
+    public Alert(
+            UUID id,
+            UUID ruleId,
+            UUID nodeId,
+            String sensorType,
+            BigDecimal triggeredValue,
+            AlertSeverity severity,
+            AlertKind alertKind,
+            Long leadTimeMinutes,
+            OffsetDateTime estimatedBreachAt
+    ) {
         this.id = id;
         this.ruleId = ruleId;
         this.nodeId = nodeId;
@@ -71,6 +96,9 @@ public class Alert extends AuditableAbstractAggregateRoot<Alert> {
         this.triggeredValue = triggeredValue;
         this.severity = severity;
         this.status = AlertStatus.RECEIVED;
+        this.alertKind = alertKind != null ? alertKind : AlertKind.REACTIVE;
+        this.leadTimeMinutes = leadTimeMinutes;
+        this.estimatedBreachAt = estimatedBreachAt;
     }
 
     public void acknowledge(UUID actorId, OffsetDateTime when) {
@@ -150,5 +178,17 @@ public class Alert extends AuditableAbstractAggregateRoot<Alert> {
 
     public String getResolutionNotes() {
         return resolutionNotes;
+    }
+
+    public AlertKind getAlertKind() {
+        return alertKind;
+    }
+
+    public Long getLeadTimeMinutes() {
+        return leadTimeMinutes;
+    }
+
+    public OffsetDateTime getEstimatedBreachAt() {
+        return estimatedBreachAt;
     }
 }

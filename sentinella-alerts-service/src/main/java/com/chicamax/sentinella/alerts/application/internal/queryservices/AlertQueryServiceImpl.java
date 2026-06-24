@@ -27,7 +27,17 @@ public class AlertQueryServiceImpl implements AlertQueryService {
     @Override
     public Page<Alert> handle(GetActiveAlertsQuery query) {
         var pageable = PageRequest.of(query.safePage(), query.safeSize());
-        return alertRepository.searchPaged(query.status(), query.severity(), query.nodeId(), pageable);
+        if (query.scoped() && (query.nodeIds() == null || query.nodeIds().isEmpty())) {
+            return Page.empty(pageable);
+        }
+        return alertRepository.searchPaged(
+                query.status(),
+                query.severity(),
+                query.nodeId(),
+                query.scoped(),
+                query.nodeIds(),
+                pageable
+        );
     }
 
     @Override
