@@ -4,11 +4,14 @@ import com.chicamax.sentinella.monitoring.domain.model.queries.GetReadingsByNode
 import com.chicamax.sentinella.monitoring.domain.services.SensorReadingQueryService;
 import com.chicamax.sentinella.monitoring.interfaces.rest.resources.SensorReadingResource;
 import com.chicamax.sentinella.monitoring.interfaces.rest.transform.SensorReadingAssembler;
+import com.chicamax.sentinella.monitoring.interfaces.rest.MonitoringNodeAccessGuard;
 import com.chicamax.sentinella.shared.interfaces.rest.PageResponse;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,13 +26,16 @@ public class SensorReadingsController {
 
     private final SensorReadingQueryService sensorReadingQueryService;
     private final SensorReadingAssembler sensorReadingAssembler;
+    private final MonitoringNodeAccessGuard monitoringNodeAccessGuard;
 
     public SensorReadingsController(
             SensorReadingQueryService sensorReadingQueryService,
-            SensorReadingAssembler sensorReadingAssembler
+            SensorReadingAssembler sensorReadingAssembler,
+            MonitoringNodeAccessGuard monitoringNodeAccessGuard
     ) {
         this.sensorReadingQueryService = sensorReadingQueryService;
         this.sensorReadingAssembler = sensorReadingAssembler;
+        this.monitoringNodeAccessGuard = monitoringNodeAccessGuard;
     }
 
     @GetMapping("/{nodeId}/readings")
@@ -38,8 +44,10 @@ public class SensorReadingsController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int limit
+            @RequestParam(defaultValue = "20") int limit,
+            @AuthenticationPrincipal Jwt jwt
     ) {
+        monitoringNodeAccessGuard.ensureCanAccess(jwt, nodeId);
         var query = new GetReadingsByNodeQuery(nodeId, from, to, page, limit);
         var result = sensorReadingQueryService.handle(query);
         var content = result.getContent().stream().map(sensorReadingAssembler::toResource).toList();
@@ -47,7 +55,11 @@ public class SensorReadingsController {
     }
 
     @GetMapping("/{nodeId}/status")
-    public ResponseEntity<SensorReadingResource> getNodeStatus(@PathVariable UUID nodeId) {
+    public ResponseEntity<SensorReadingResource> getNodeStatus(
+            @PathVariable UUID nodeId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        monitoringNodeAccessGuard.ensureCanAccess(jwt, nodeId);
         var latest = sensorReadingQueryService.getLatestByNode(nodeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sin lecturas para este nodo"));
         return ResponseEntity.ok(sensorReadingAssembler.toResource(latest));

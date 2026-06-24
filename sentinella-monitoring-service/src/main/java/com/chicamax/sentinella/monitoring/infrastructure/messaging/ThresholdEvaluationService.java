@@ -1,9 +1,9 @@
 package com.chicamax.sentinella.monitoring.infrastructure.messaging;
 
-import com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants;
 import com.chicamax.sentinella.monitoring.domain.model.entities.ThresholdRule;
 import com.chicamax.sentinella.monitoring.domain.model.valueobjects.ThresholdRuleOperator;
-import com.chicamax.sentinella.monitoring.infrastructure.persistence.jpa.ThresholdRuleRepository;
+import com.chicamax.sentinella.monitoring.infrastructure.cache.ThresholdRuleCache;
+import com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants;
 import com.chicamax.sentinella.shared.infrastructure.messaging.events.AlertTriggeredMessage;
 import com.chicamax.sentinella.shared.infrastructure.messaging.events.SensorReadingReceivedMessage;
 import com.chicamax.sentinella.shared.infrastructure.messaging.events.ThresholdExceededMessage;
@@ -14,22 +14,16 @@ import org.springframework.stereotype.Component;
 @Component
 public class ThresholdEvaluationService {
 
-    private final ThresholdRuleRepository thresholdRuleRepository;
+    private final ThresholdRuleCache thresholdRuleCache;
     private final RabbitTemplate rabbitTemplate;
 
-    public ThresholdEvaluationService(ThresholdRuleRepository thresholdRuleRepository, RabbitTemplate rabbitTemplate) {
-        this.thresholdRuleRepository = thresholdRuleRepository;
+    public ThresholdEvaluationService(ThresholdRuleCache thresholdRuleCache, RabbitTemplate rabbitTemplate) {
+        this.thresholdRuleCache = thresholdRuleCache;
         this.rabbitTemplate = rabbitTemplate;
     }
 
     public void evaluate(SensorReadingReceivedMessage message) {
-        for (ThresholdRule rule : thresholdRuleRepository.findAll()) {
-            if (!rule.isActive()) {
-                continue;
-            }
-            if (!rule.getNodeId().equals(message.nodeId())) {
-                continue;
-            }
+        for (ThresholdRule rule : thresholdRuleCache.activeRulesForNode(message.nodeId())) {
             if (!sameSensorType(rule.getSensorType(), message.sensorType())) {
                 continue;
             }

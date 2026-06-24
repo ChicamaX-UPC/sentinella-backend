@@ -58,4 +58,36 @@ public class ReadingSnapshot {
         this.maxValue = maxValue;
         this.sampleCount = sampleCount;
     }
+
+    public UUID getId() {
+        return id;
+    }
+
+    public UUID getNodeId() {
+        return nodeId;
+    }
+
+    public String getSensorType() {
+        return sensorType;
+    }
+
+    public OffsetDateTime getBucketStart() {
+        return bucketStart;
+    }
+
+    public BigDecimal getAvgValue() {
+        return avgValue;
+    }
+
+    public BigDecimal getMinValue() {
+        return minValue;
+    }
+
+    public BigDecimal getMaxValue() {
+        return maxValue;
+    }
+
+    public int getSampleCount() {
+        return sampleCount;
+    }
 }

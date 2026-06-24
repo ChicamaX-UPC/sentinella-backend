@@ -4,6 +4,7 @@ import com.chicamax.sentinella.monitoring.domain.model.commands.CreateThresholdR
 import com.chicamax.sentinella.monitoring.domain.model.commands.UpdateThresholdRuleCommand;
 import com.chicamax.sentinella.monitoring.domain.model.entities.ThresholdRule;
 import com.chicamax.sentinella.monitoring.domain.services.ThresholdRuleCommandService;
+import com.chicamax.sentinella.monitoring.infrastructure.cache.ThresholdRuleCache;
 import com.chicamax.sentinella.monitoring.infrastructure.persistence.jpa.ThresholdRuleRepository;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -15,9 +16,14 @@ import org.springframework.web.server.ResponseStatusException;
 public class ThresholdRuleCommandServiceImpl implements ThresholdRuleCommandService {
 
     private final ThresholdRuleRepository thresholdRuleRepository;
+    private final ThresholdRuleCache thresholdRuleCache;
 
-    public ThresholdRuleCommandServiceImpl(ThresholdRuleRepository thresholdRuleRepository) {
+    public ThresholdRuleCommandServiceImpl(
+            ThresholdRuleRepository thresholdRuleRepository,
+            ThresholdRuleCache thresholdRuleCache
+    ) {
         this.thresholdRuleRepository = thresholdRuleRepository;
+        this.thresholdRuleCache = thresholdRuleCache;
     }
 
     @Override
@@ -34,7 +40,9 @@ public class ThresholdRuleCommandServiceImpl implements ThresholdRuleCommandServ
                 command.escalationMinutes(),
                 command.updatedBy()
         );
-        return thresholdRuleRepository.save(rule);
+        ThresholdRule saved = thresholdRuleRepository.save(rule);
+        thresholdRuleCache.invalidateNode(saved.getNodeId());
+        return saved;
     }
 
     @Override
@@ -42,6 +50,7 @@ public class ThresholdRuleCommandServiceImpl implements ThresholdRuleCommandServ
     public ThresholdRule update(UpdateThresholdRuleCommand command) {
         ThresholdRule rule = thresholdRuleRepository.findById(command.ruleId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Regla no encontrada"));
+        UUID previousNodeId = rule.getNodeId();
         rule.update(
                 command.sensorType(),
                 command.operator(),
@@ -52,15 +61,20 @@ public class ThresholdRuleCommandServiceImpl implements ThresholdRuleCommandServ
                 command.active(),
                 command.updatedBy()
         );
-        return thresholdRuleRepository.save(rule);
+        ThresholdRule saved = thresholdRuleRepository.save(rule);
+        thresholdRuleCache.invalidateNode(previousNodeId);
+        if (!previousNodeId.equals(saved.getNodeId())) {
+            thresholdRuleCache.invalidateNode(saved.getNodeId());
+        }
+        return saved;
     }
 
     @Override
     @Transactional
     public void delete(UUID ruleId) {
-        if (!thresholdRuleRepository.existsById(ruleId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Regla no encontrada");
-        }
+        ThresholdRule rule = thresholdRuleRepository.findById(ruleId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Regla no encontrada"));
         thresholdRuleRepository.deleteById(ruleId);
+        thresholdRuleCache.invalidateNode(rule.getNodeId());
     }
 }

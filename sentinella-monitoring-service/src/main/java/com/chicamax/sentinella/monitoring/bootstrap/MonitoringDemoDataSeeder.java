@@ -1,9 +1,11 @@
 package com.chicamax.sentinella.monitoring.bootstrap;
 
+import com.chicamax.sentinella.monitoring.application.internal.prediction.ReadingSnapshotBackfillService;
 import com.chicamax.sentinella.monitoring.domain.model.aggregates.SensorNode;
 import com.chicamax.sentinella.monitoring.domain.model.entities.SensorReading;
 import com.chicamax.sentinella.monitoring.domain.model.valueobjects.SensorStatus;
 import com.chicamax.sentinella.monitoring.domain.model.valueobjects.SensorType;
+import com.chicamax.sentinella.monitoring.infrastructure.persistence.jpa.ReadingSnapshotRepository;
 import com.chicamax.sentinella.monitoring.infrastructure.persistence.jpa.SensorNodeRepository;
 import com.chicamax.sentinella.monitoring.infrastructure.persistence.jpa.SensorReadingRepository;
 import com.chicamax.sentinella.shared.bootstrap.demo.SentinellaDemoIds;
@@ -45,17 +47,23 @@ public class MonitoringDemoDataSeeder implements ApplicationRunner {
 
     private final SensorNodeRepository sensorNodeRepository;
     private final SensorReadingRepository sensorReadingRepository;
+    private final ReadingSnapshotRepository readingSnapshotRepository;
+    private final ReadingSnapshotBackfillService readingSnapshotBackfillService;
     private final TransactionTemplate transactionTemplate;
     private final boolean seedForce;
 
     public MonitoringDemoDataSeeder(
             SensorNodeRepository sensorNodeRepository,
             SensorReadingRepository sensorReadingRepository,
+            ReadingSnapshotRepository readingSnapshotRepository,
+            ReadingSnapshotBackfillService readingSnapshotBackfillService,
             PlatformTransactionManager transactionManager,
             @Value("${sentinella.seed.force:false}") boolean seedForce
     ) {
         this.sensorNodeRepository = sensorNodeRepository;
         this.sensorReadingRepository = sensorReadingRepository;
+        this.readingSnapshotRepository = readingSnapshotRepository;
+        this.readingSnapshotBackfillService = readingSnapshotBackfillService;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.seedForce = seedForce;
     }
@@ -81,6 +89,7 @@ public class MonitoringDemoDataSeeder implements ApplicationRunner {
             log.info("sentinella.seed (monitoring): recreando dataset demo (force={}).", seedForce);
             sensorReadingRepository.deleteAllInBatch();
             sensorNodeRepository.deleteAllInBatch();
+            readingSnapshotRepository.deleteAllInBatch();
         }
 
         OffsetDateTime now = OffsetDateTime.now().truncatedTo(ChronoUnit.SECONDS);
@@ -132,6 +141,7 @@ public class MonitoringDemoDataSeeder implements ApplicationRunner {
                 HISTORY_DAYS,
                 READING_EVERY_HOURS
         );
+        readingSnapshotBackfillService.backfillLastDays(HISTORY_DAYS);
     }
 
     /**
