@@ -27,10 +27,27 @@ public class AlertTriggeredConsumer {
                 message.nodeId(),
                 message.sensorType(),
                 message.value(),
-                AlertSeverity.valueOf(message.severity()),
+                toAlertSeverity(message.severity()),
                 message.channels(),
                 SYSTEM_ACTOR_ID,
                 SYSTEM_ROLE
         ));
+    }
+
+    /**
+     * Mapea el vocabulario de severidad de monitoring ({@code ThresholdSeverity}: INFO, WARNING,
+     * CRITICAL, HIGH, MEDIUM) al de alerts ({@link AlertSeverity}: INFO, WARNING, CRITICAL).
+     * Tolerante a nulos/desconocidos (cae a WARNING) para no rechazar telemetría a la DLQ.
+     */
+    private static AlertSeverity toAlertSeverity(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return AlertSeverity.WARNING;
+        }
+        return switch (raw.trim().toUpperCase()) {
+            case "INFO", "LOW" -> AlertSeverity.INFO;
+            case "WARNING", "MEDIUM", "MED" -> AlertSeverity.WARNING;
+            case "CRITICAL", "HIGH", "SEVERE" -> AlertSeverity.CRITICAL;
+            default -> AlertSeverity.WARNING;
+        };
     }
 }

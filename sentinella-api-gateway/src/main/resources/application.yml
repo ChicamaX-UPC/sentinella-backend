@@ -44,6 +44,13 @@ spring:
             - Path=/api/v1/rounds/**
           filters:
             - StripPrefix=1
+        - id: monitoring-telemetry-ingest
+          uri: ${MONITORING_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/monitoring/readings/ingest
+            - Method=POST
+          filters:
+            - StripPrefix=1
         - id: monitoring-nodes
           uri: ${MONITORING_SERVICE_URL:http://localhost:8082}
           predicates:

@@ -5,6 +5,7 @@ import com.chicamax.sentinella.monitoring.domain.model.commands.UpdateThresholdR
 import com.chicamax.sentinella.monitoring.domain.model.entities.ThresholdRule;
 import com.chicamax.sentinella.monitoring.domain.services.ThresholdRuleCommandService;
 import com.chicamax.sentinella.monitoring.infrastructure.cache.ThresholdRuleCache;
+import com.chicamax.sentinella.monitoring.infrastructure.messaging.AlertRuleSyncPublisher;
 import com.chicamax.sentinella.monitoring.infrastructure.persistence.jpa.ThresholdRuleRepository;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -17,13 +18,16 @@ public class ThresholdRuleCommandServiceImpl implements ThresholdRuleCommandServ
 
     private final ThresholdRuleRepository thresholdRuleRepository;
     private final ThresholdRuleCache thresholdRuleCache;
+    private final AlertRuleSyncPublisher alertRuleSyncPublisher;
 
     public ThresholdRuleCommandServiceImpl(
             ThresholdRuleRepository thresholdRuleRepository,
-            ThresholdRuleCache thresholdRuleCache
+            ThresholdRuleCache thresholdRuleCache,
+            AlertRuleSyncPublisher alertRuleSyncPublisher
     ) {
         this.thresholdRuleRepository = thresholdRuleRepository;
         this.thresholdRuleCache = thresholdRuleCache;
+        this.alertRuleSyncPublisher = alertRuleSyncPublisher;
     }
 
     @Override
@@ -42,6 +46,7 @@ public class ThresholdRuleCommandServiceImpl implements ThresholdRuleCommandServ
         );
         ThresholdRule saved = thresholdRuleRepository.save(rule);
         thresholdRuleCache.invalidateNode(saved.getNodeId());
+        alertRuleSyncPublisher.publish(saved);
         return saved;
     }
 
@@ -66,6 +71,7 @@ public class ThresholdRuleCommandServiceImpl implements ThresholdRuleCommandServ
         if (!previousNodeId.equals(saved.getNodeId())) {
             thresholdRuleCache.invalidateNode(saved.getNodeId());
         }
+        alertRuleSyncPublisher.publish(saved);
         return saved;
     }
 

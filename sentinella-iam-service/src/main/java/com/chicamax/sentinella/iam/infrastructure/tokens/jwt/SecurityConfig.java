@@ -47,6 +47,7 @@ public class SecurityConfig {
                         "/v1/auth/refresh",
                         "/v1/auth/forgot-password",
                         "/v1/auth/reset-password",
+                        "/v1/auth/jwks",
                         "/api/v1/auth/health"
                 )
                 .cors(Customizer.withDefaults())

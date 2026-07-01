@@ -18,6 +18,8 @@ public final class SentinellaMessagingConstants {
     /** Replica en tiempo casi real para el WebSocket/STOMP del dashboard. */
     public static final String SENSOR_READING_REALTIME_ROUTING = "sensor.reading.realtime";
     public static final String THRESHOLD_EXCEEDED_ROUTING = "threshold.exceeded";
+    /** Réplica de reglas de umbral Monitoring → Alerts (para el FK de alerts.alert_rules). */
+    public static final String ALERT_RULE_SYNC_ROUTING = "alert.rule.sync";
     public static final String ALERT_CREATED_ROUTING = "alert.created";
     public static final String ALERT_CLOSED_ROUTING = "alert.closed";
     public static final String ALERT_ACKNOWLEDGED_ROUTING = "alert.acknowledged";

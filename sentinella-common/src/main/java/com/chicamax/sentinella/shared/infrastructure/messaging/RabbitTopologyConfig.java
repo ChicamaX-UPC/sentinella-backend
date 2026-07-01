@@ -29,6 +29,7 @@ import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingCon
 import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.PROFILE_PLAN_CLEARED_ROUTING;
 import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.TELEMETRY_ROUTING;
 import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.THRESHOLD_EXCEEDED_ROUTING;
+import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.ALERT_RULE_SYNC_ROUTING;
 import static com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants.USER_REGISTERED_ROUTING;
 
 import org.springframework.amqp.core.Binding;
@@ -61,6 +62,19 @@ public class RabbitTopologyConfig {
                 .deadLetterExchange(SENTINELLA_DLX_EXCHANGE)
                 .deadLetterRoutingKey("telemetry.dlq")
                 .build();
+    }
+
+    @Bean
+    public Queue alertRuleSyncQueue() {
+        return QueueBuilder.durable("alert.rule.sync.queue")
+                .deadLetterExchange(SENTINELLA_DLX_EXCHANGE)
+                .deadLetterRoutingKey("alert.rule.sync.dlq")
+                .build();
+    }
+
+    @Bean
+    public Queue alertRuleSyncDlq() {
+        return QueueBuilder.durable("alert.rule.sync.dlq").build();
     }
 
     @Bean
@@ -424,6 +438,22 @@ public class RabbitTopologyConfig {
             @Qualifier("sentinellaExchange") DirectExchange exchange
     ) {
         return BindingBuilder.bind(telemetryQueue).to(exchange).with(TELEMETRY_ROUTING);
+    }
+
+    @Bean
+    public Binding alertRuleSyncBinding(
+            @Qualifier("alertRuleSyncQueue") Queue alertRuleSyncQueue,
+            @Qualifier("sentinellaExchange") DirectExchange exchange
+    ) {
+        return BindingBuilder.bind(alertRuleSyncQueue).to(exchange).with(ALERT_RULE_SYNC_ROUTING);
+    }
+
+    @Bean
+    public Binding alertRuleSyncDlqBinding(
+            @Qualifier("alertRuleSyncDlq") Queue dlq,
+            @Qualifier("sentinellaDlxExchange") DirectExchange dlxExchange
+    ) {
+        return BindingBuilder.bind(dlq).to(dlxExchange).with("alert.rule.sync.dlq");
     }
 
     @Bean

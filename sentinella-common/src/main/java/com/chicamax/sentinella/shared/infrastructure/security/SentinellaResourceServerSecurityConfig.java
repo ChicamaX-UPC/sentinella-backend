@@ -50,6 +50,7 @@ public class SentinellaResourceServerSecurityConfig {
                     }
                     auth.requestMatchers("/v1/ws/**").permitAll()
                             .requestMatchers("/v1/internal/**").permitAll()
+                            .requestMatchers(HttpMethod.POST, "/v1/monitoring/readings/ingest").permitAll()
                             .anyRequest().authenticated();
                 })
                 .oauth2ResourceServer(oauth -> oauth.jwt(

@@ -56,7 +56,7 @@ public class ReadingSnapshotBackfillService {
                     UUID.randomUUID(),
                     UUID.fromString(row[0].toString()),
                     String.valueOf(row[1]),
-                    ((java.sql.Timestamp) row[2]).toInstant().atOffset(ZoneOffset.UTC),
+                    toOffsetDateTime(row[2]),
                     toDecimal(row[3]),
                     toDecimal(row[4]),
                     toDecimal(row[5]),
@@ -68,6 +68,24 @@ public class ReadingSnapshotBackfillService {
             log.info("sentinella.prediction: {} snapshots backfilled desde {}", saved, from);
         }
         return saved;
+    }
+
+    /**
+     * Normaliza el {@code bucket_start} de la consulta nativa a {@link OffsetDateTime} en UTC.
+     * El driver de PostgreSQL puede devolver el valor como {@link java.time.OffsetDateTime},
+     * {@link java.time.Instant}, {@link java.time.LocalDateTime} o {@link java.sql.Timestamp}
+     * según versión/tipo de columna; este método los soporta todos.
+     */
+    private static OffsetDateTime toOffsetDateTime(Object value) {
+        return switch (value) {
+            case OffsetDateTime odt -> odt.withOffsetSameInstant(ZoneOffset.UTC);
+            case java.time.Instant instant -> instant.atOffset(ZoneOffset.UTC);
+            case java.time.LocalDateTime ldt -> ldt.atOffset(ZoneOffset.UTC);
+            case java.sql.Timestamp ts -> ts.toInstant().atOffset(ZoneOffset.UTC);
+            case null -> throw new IllegalStateException("bucket_start nulo en backfill de snapshots");
+            default -> throw new IllegalStateException(
+                    "Tipo de timestamp no soportado en backfill: " + value.getClass());
+        };
     }
 
     private static BigDecimal toDecimal(Object value) {
