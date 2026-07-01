@@ -50,7 +50,7 @@ spring:
             - Path=/api/v1/monitoring/readings/ingest
             - Method=POST
           filters:
-            - StripPrefix=1
+            - SetPath=/v1/internal/telemetry/ingest
         - id: monitoring-nodes
           uri: ${MONITORING_SERVICE_URL:http://localhost:8082}
           predicates:

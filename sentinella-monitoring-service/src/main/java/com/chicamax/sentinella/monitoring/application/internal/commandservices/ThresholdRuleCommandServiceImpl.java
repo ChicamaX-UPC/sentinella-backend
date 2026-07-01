@@ -80,6 +80,7 @@ public class ThresholdRuleCommandServiceImpl implements ThresholdRuleCommandServ
     public void delete(UUID ruleId) {
         ThresholdRule rule = thresholdRuleRepository.findById(ruleId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Regla no encontrada"));
+        alertRuleSyncPublisher.publishDeactivated(rule);
         thresholdRuleRepository.deleteById(ruleId);
         thresholdRuleCache.invalidateNode(rule.getNodeId());
     }

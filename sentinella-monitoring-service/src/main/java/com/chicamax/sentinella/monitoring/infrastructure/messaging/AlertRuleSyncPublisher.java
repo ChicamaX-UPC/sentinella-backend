@@ -20,7 +20,28 @@ public class AlertRuleSyncPublisher {
     }
 
     public void publish(ThresholdRule rule) {
-        AlertRuleSyncMessage message = new AlertRuleSyncMessage(
+        send(toMessage(rule));
+    }
+
+    /** Marca la réplica en Alerts como inactiva antes de borrar la regla en Monitoring. */
+    public void publishDeactivated(ThresholdRule rule) {
+        send(toMessage(rule, false));
+    }
+
+    private void send(AlertRuleSyncMessage message) {
+        rabbitTemplate.convertAndSend(
+                SentinellaMessagingConstants.SENTINELLA_EXCHANGE,
+                SentinellaMessagingConstants.ALERT_RULE_SYNC_ROUTING,
+                message
+        );
+    }
+
+    private static AlertRuleSyncMessage toMessage(ThresholdRule rule) {
+        return toMessage(rule, rule.isActive());
+    }
+
+    private static AlertRuleSyncMessage toMessage(ThresholdRule rule, boolean active) {
+        return new AlertRuleSyncMessage(
                 rule.getId(),
                 rule.getNodeId(),
                 rule.getSensorType(),
@@ -29,12 +50,7 @@ public class AlertRuleSyncPublisher {
                 rule.getSeverity().name(),
                 rule.getChannels(),
                 rule.getEscalationMinutes(),
-                rule.isActive()
-        );
-        rabbitTemplate.convertAndSend(
-                SentinellaMessagingConstants.SENTINELLA_EXCHANGE,
-                SentinellaMessagingConstants.ALERT_RULE_SYNC_ROUTING,
-                message
+                active
         );
     }
 }

@@ -12,6 +12,7 @@ class SentinellaMessagingConstantsContractTest {
         assertEquals("sentinella", SentinellaMessagingConstants.SENTINELLA_EXCHANGE);
         assertEquals("threshold.exceeded", SentinellaMessagingConstants.THRESHOLD_EXCEEDED_ROUTING);
         assertEquals("round.synced", SentinellaMessagingConstants.ROUND_SYNCED_ROUTING);
+        assertEquals("alert.rule.sync", SentinellaMessagingConstants.ALERT_RULE_SYNC_ROUTING);
     }
 
     @Test

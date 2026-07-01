@@ -34,7 +34,7 @@ public class AlertRuleSyncConsumer {
 
         AlertRule existing = alertRuleRepository.findById(message.ruleId()).orElse(null);
         if (existing == null) {
-            alertRuleRepository.save(new AlertRule(
+            AlertRule created = new AlertRule(
                     message.ruleId(),
                     message.nodeId(),
                     message.sensorType(),
@@ -44,7 +44,20 @@ public class AlertRuleSyncConsumer {
                     channels,
                     message.escalationMinutes(),
                     null
-            ));
+            );
+            if (!message.active()) {
+                created.update(
+                        message.sensorType(),
+                        operator,
+                        message.thresholdValue(),
+                        severity,
+                        channels,
+                        message.escalationMinutes(),
+                        false,
+                        null
+                );
+            }
+            alertRuleRepository.save(created);
         } else {
             existing.update(
                     message.sensorType(),
