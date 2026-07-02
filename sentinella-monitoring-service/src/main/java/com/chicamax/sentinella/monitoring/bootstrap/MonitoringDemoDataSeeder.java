@@ -40,10 +40,32 @@ public class MonitoringDemoDataSeeder implements ApplicationRunner {
     private static final int READING_EVERY_HOURS = 3;
     private static final int BATCH_SIZE = 400;
     private static final int MIN_NODES_FOR_SKIP = 30;
+    private static final int TWIN_HISTORY_DAYS = 7;
 
     /** Centro aproximado del tranque Chicama Norte (relaves). */
     private static final double DAM_CENTER_LAT = -7.9212;
     private static final double DAM_CENTER_LNG = -78.5140;
+
+    /** Escala grados/unidad de escena para geoposicionar los nodos del gemelo. */
+    private static final double TWIN_GEO_SCALE = 1.4e-5;
+
+    /**
+     * Nodos del gemelo digital (blueprint §9.2) con externalId EXACTO al de la escena 3D
+     * (sensorPositions.ts). El gemelo ingesta telemetría simulada contra estos UUIDs.
+     */
+    private static final List<TwinNodeSpec> TWIN_NODE_SPECS = List.of(
+            new TwinNodeSpec("PI-01", "Piezómetro 1 — Pie Aguas Abajo Izq", SensorType.PRESSURE, -80, 0.5, 112),
+            new TwinNodeSpec("PI-02", "Piezómetro 2 — Interior Muro Izq", SensorType.PRESSURE, -40, 5, 100),
+            new TwinNodeSpec("PI-03", "Piezómetro 3 — Pie Aguas Abajo Central", SensorType.PRESSURE, 0, 0.5, 118),
+            new TwinNodeSpec("PI-04", "Piezómetro 4 — Interior Muro Der", SensorType.PRESSURE, 40, 5, 100),
+            new TwinNodeSpec("PI-05", "Piezómetro 5 — Pie Aguas Abajo Der", SensorType.PRESSURE, 80, 0.5, 112),
+            new TwinNodeSpec("NW-01", "Nivel Relave — Barcaza", SensorType.WATER_LEVEL, 0, 6.5, -30),
+            new TwinNodeSpec("IN-01", "Inclinómetro — Corona Izquierda", SensorType.INCLINATION, -80, 11.5, 91),
+            new TwinNodeSpec("IN-02", "Inclinómetro — Corona Central", SensorType.INCLINATION, 0, 11.5, 96),
+            new TwinNodeSpec("IN-03", "Inclinómetro — Corona Derecha", SensorType.INCLINATION, 80, 11.5, 91),
+            new TwinNodeSpec("PH-01", "pH/Turbidez — Poza Decant.", SensorType.PH, -26, 1.5, 58),
+            new TwinNodeSpec("PV-01", "Pluviómetro — Ladera Oeste", SensorType.PLUVIOMETER, -180, 26, -60)
+    );
 
     private final SensorNodeRepository sensorNodeRepository;
     private final SensorReadingRepository sensorReadingRepository;
@@ -77,6 +99,7 @@ public class MonitoringDemoDataSeeder implements ApplicationRunner {
         long existingNodes = sensorNodeRepository.count();
         if (!seedForce && existingNodes >= MIN_NODES_FOR_SKIP) {
             repositionDemoNodes();
+            ensureTwinNodes();
             ensureRecentReadings();
             log.info(
                     "sentinella.seed (monitoring): {} nodos demo ya cargados, lecturas recientes verificadas.",
@@ -141,7 +164,82 @@ public class MonitoringDemoDataSeeder implements ApplicationRunner {
                 HISTORY_DAYS,
                 READING_EVERY_HOURS
         );
+        ensureTwinNodes();
         readingSnapshotBackfillService.backfillLastDays(HISTORY_DAYS);
+    }
+
+    /**
+     * Crea (si faltan) los nodos del gemelo digital con externalId exacto de la escena 3D
+     * y una historia corta de lecturas basales. Idempotente: usa UUIDs estables
+     * ({@link SentinellaDemoIds#twinNodeId(String)}) y no toca nodos existentes.
+     */
+    private void ensureTwinNodes() {
+        OffsetDateTime now = OffsetDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+        int created = 0;
+        List<SensorReading> readings = new ArrayList<>();
+        for (TwinNodeSpec spec : TWIN_NODE_SPECS) {
+            UUID id = SentinellaDemoIds.twinNodeId(spec.externalId());
+            if (sensorNodeRepository.existsById(id)) {
+                continue;
+            }
+            String position3d = "{\"x\":%s,\"y\":%s,\"z\":%s}".formatted(spec.x(), spec.y(), spec.z());
+            sensorNodeRepository.save(new SensorNode(
+                    id,
+                    spec.externalId(),
+                    spec.name(),
+                    SentinellaDemoIds.TAILING_DAM_CHICAMA_NORTE,
+                    spec.type(),
+                    bdCoord(DAM_CENTER_LAT - spec.z() * TWIN_GEO_SCALE),
+                    bdCoord(DAM_CENTER_LNG + spec.x() * TWIN_GEO_SCALE),
+                    position3d,
+                    "ONLINE",
+                    now
+            ));
+            created++;
+
+            OffsetDateTime ts = now.minusDays(TWIN_HISTORY_DAYS).truncatedTo(ChronoUnit.HOURS);
+            int step = 0;
+            while (!ts.isAfter(now)) {
+                BigDecimal value = twinSampleValue(spec.type(), step);
+                readings.add(new SensorReading(
+                        UUID.randomUUID(),
+                        ts,
+                        id,
+                        spec.type(),
+                        value,
+                        unitFor(spec.type()),
+                        statusFor(spec.type(), value),
+                        "{\"source\":\"seed-twin\"}"
+                ));
+                step++;
+                ts = ts.plusHours(READING_EVERY_HOURS);
+            }
+        }
+        if (!readings.isEmpty()) {
+            sensorReadingRepository.saveAll(readings);
+        }
+        if (created > 0) {
+            log.info(
+                    "sentinella.seed (monitoring): {} nodos del gemelo digital creados (externalId NW-01, PI-01…).",
+                    created
+            );
+        }
+    }
+
+    /**
+     * Valores basales realistas para la historia corta del gemelo: nivel ~780 msnm (operación
+     * normal, lejos de los umbrales), presión de poros coherente con esa cota, lluvia esporádica.
+     */
+    private static BigDecimal twinSampleValue(SensorType type, int step) {
+        double wave = Math.sin(step / 16.0);
+        return switch (type) {
+            case WATER_LEVEL -> bd(780.2 + wave * 0.5 + Math.cos(step / 40.0) * 0.3);
+            case PRESSURE -> bd(58.0 + wave * 4.0 + (step % 7) * 0.4);
+            case PLUVIOMETER -> bd(Math.max(0, (step % 32 < 3 ? 8.0 : 0.4) + wave * 0.6));
+            case INCLINATION -> bd(0.12 + wave * 0.02 + (step % 5) * 0.002);
+            case PH -> bd(7.1 + wave * 0.12);
+            case TURBIDITY -> bd(16.0 + wave * 3.0);
+        };
     }
 
     /**
@@ -156,18 +254,43 @@ public class MonitoringDemoDataSeeder implements ApplicationRunner {
                         .findTopByNodeIdAndTimestampGreaterThanEqualOrderByTimestampDesc(spec.id(), threshold)
                         .isPresent())
                 .count();
-        if (nodesWithRecent >= specs.size()) {
+        long twinWithRecent = TWIN_NODE_SPECS.stream()
+                .filter(twin -> sensorReadingRepository
+                        .findTopByNodeIdAndTimestampGreaterThanEqualOrderByTimestampDesc(
+                                SentinellaDemoIds.twinNodeId(twin.externalId()), threshold)
+                        .isPresent())
+                .count();
+        if (nodesWithRecent >= specs.size() && twinWithRecent >= TWIN_NODE_SPECS.size()) {
             return;
         }
         OffsetDateTime now = OffsetDateTime.now().truncatedTo(ChronoUnit.SECONDS);
-        List<SensorReading> recent = new ArrayList<>(specs.size());
+        List<SensorReading> recent = new ArrayList<>(specs.size() + TWIN_NODE_SPECS.size());
         for (DemoNodeSpec spec : specs) {
             recent.add(buildReading(spec, now.minusSeconds(spec.index() % 15L), 0));
+        }
+        for (TwinNodeSpec twin : TWIN_NODE_SPECS) {
+            UUID twinId = SentinellaDemoIds.twinNodeId(twin.externalId());
+            if (sensorReadingRepository
+                    .findTopByNodeIdAndTimestampGreaterThanEqualOrderByTimestampDesc(twinId, threshold)
+                    .isPresent()) {
+                continue;
+            }
+            BigDecimal value = twinSampleValue(twin.type(), 0);
+            recent.add(new SensorReading(
+                    UUID.randomUUID(),
+                    now,
+                    twinId,
+                    twin.type(),
+                    value,
+                    unitFor(twin.type()),
+                    statusFor(twin.type(), value),
+                    "{\"source\":\"seed-twin\"}"
+            ));
         }
         sensorReadingRepository.saveAll(recent);
         log.info(
                 "sentinella.seed (monitoring): lecturas recientes para {} nodos (tenian {} dentro de la ultima hora).",
-                specs.size(),
+                recent.size(),
                 nodesWithRecent
         );
     }
@@ -360,6 +483,16 @@ public class MonitoringDemoDataSeeder implements ApplicationRunner {
             BigDecimal latitude,
             BigDecimal longitude,
             String position3d
+    ) {
+    }
+
+    private record TwinNodeSpec(
+            String externalId,
+            String name,
+            SensorType type,
+            double x,
+            double y,
+            double z
     ) {
     }
 }

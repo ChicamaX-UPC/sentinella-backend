@@ -38,6 +38,14 @@ public final class SentinellaDemoIds {
         return UUID.nameUUIDFromBytes(("chicama-demo-node-" + index).getBytes(StandardCharsets.UTF_8));
     }
 
+    /**
+     * IDs estables de los nodos del gemelo digital (blueprint §9.2), indexados por su
+     * externalId exacto (NW-01, PI-01…PI-05, IN-01…IN-03, PH-01, PV-01).
+     */
+    public static UUID twinNodeId(String externalId) {
+        return UUID.nameUUIDFromBytes(("chicama-twin-node-" + externalId).getBytes(StandardCharsets.UTF_8));
+    }
+
     private SentinellaDemoIds() {
     }
 }
