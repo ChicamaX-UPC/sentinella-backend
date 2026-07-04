@@ -18,6 +18,11 @@ public final class SentinellaDemoIds {
 
     public static final UUID ORGANIZATION_DEMO = UUID.fromString("e0000001-0001-4001-8001-000000000001");
 
+    /** Suscripción demo del admin (plan MAX, vigente hasta 2028). */
+    public static final UUID SUBSCRIPTION_ADMIN = UUID.fromString("d0000001-0001-4001-8001-000000000001");
+
+    public static final UUID PLAN_MAX = UUID.fromString("11111111-1111-1111-1111-111111111203");
+
     public static final UUID NODE_WATER_LEVEL = UUID.fromString("c1000001-0001-4001-8001-000000000001");
     public static final UUID NODE_PRESSURE = UUID.fromString("c1000002-0002-4002-8002-000000000002");
     public static final UUID NODE_PLUVIOMETER = UUID.fromString("c1000003-0003-4003-8003-000000000003");
