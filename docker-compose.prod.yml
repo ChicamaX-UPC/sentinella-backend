@@ -56,3 +56,21 @@ services:
   blockchain-service:
     environment:
       SENTINELLA_OPENAPI_PUBLIC: "false"
+      BLOCKCHAIN_FABRIC_ENABLED: ${BLOCKCHAIN_FABRIC_ENABLED:-true}
+      BLOCKCHAIN_FABRIC_CONNECTION_PROFILE: ${BLOCKCHAIN_FABRIC_CONNECTION_PROFILE:-/fabric/config/connection-org1.yaml}
+      BLOCKCHAIN_FABRIC_USER_CERT: ${BLOCKCHAIN_FABRIC_USER_CERT:-/fabric/gateway-identity/cert.pem}
+      BLOCKCHAIN_FABRIC_USER_KEY: ${BLOCKCHAIN_FABRIC_USER_KEY:-/fabric/gateway-identity/key.pem}
+      BLOCKCHAIN_FABRIC_CHANNEL: ${BLOCKCHAIN_FABRIC_CHANNEL:-sentinellachannel}
+      BLOCKCHAIN_FABRIC_CHAINCODE: ${BLOCKCHAIN_FABRIC_CHAINCODE:-sentinella-ledger}
+      BLOCKCHAIN_FABRIC_RETRY_MAX: ${BLOCKCHAIN_FABRIC_RETRY_MAX:-5}
+      BLOCKCHAIN_DLQ_MAX_REPUBLISH: ${BLOCKCHAIN_DLQ_MAX_REPUBLISH:-10}
+    volumes:
+      - ./infra/hyperledger-fabric/organizations:/fabric/organizations:ro
+      - ./infra/hyperledger-fabric/gateway-identity:/fabric/gateway-identity:ro
+      - ./infra/hyperledger-fabric/config:/fabric/config:ro
+    networks:
+      - sentinella-fabric
+
+networks:
+  sentinella-fabric:
+    name: sentinella-fabric

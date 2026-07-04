@@ -1,4 +1,8 @@
+name: sentinella-backend
+
 # Ejecutar desde esta carpella: cd sentinella-backend && docker compose up --build
+# Con Fabric (un solo grupo Docker Desktop):
+#   docker compose -f docker-compose.yml -f docker-compose.fabric.yml -f docker-compose.fabric-stack.yml --profile fabric up -d
 # Copia .env.example → .env (claves Google Maps / SendGrid). El archivo .env no se commitea.
 # IAM en el host: http://localhost:18081 (evita choque con otro servicio en 8081).
 #
@@ -221,12 +225,14 @@ services:
       JWK_SET_URI: http://iam-service:8081/v1/auth/jwks
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
-      STRIPE_SUCCESS_URL: ${STRIPE_SUCCESS_URL:-http://localhost:3000/dashboard?billing=success}
-      STRIPE_CANCEL_URL: ${STRIPE_CANCEL_URL:-http://localhost:3000/profile?billing=cancel}
+      STRIPE_SUCCESS_URL: ${STRIPE_SUCCESS_URL:-http://localhost:3000/dashboard?billing=success&session_id={CHECKOUT_SESSION_ID}}
+      STRIPE_CANCEL_URL: ${STRIPE_CANCEL_URL:-http://localhost:3000/subscribe?billing=cancel}
       STRIPE_PORTAL_RETURN_URL: ${STRIPE_PORTAL_RETURN_URL:-http://localhost:3000/profile?billing=1}
       STRIPE_DEMO_CONFIRM_ENABLED: ${STRIPE_DEMO_CONFIRM_ENABLED:-false}
       SENTINELLA_SENDGRID_API_KEY: ${SENTINELLA_SENDGRID_API_KEY:-}
       SENTINELLA_SENDGRID_FROM_EMAIL: ${SENTINELLA_SENDGRID_FROM_EMAIL:-}
+      SENTINELLA_RESEND_API_KEY: ${SENTINELLA_RESEND_API_KEY:-}
+      SENTINELLA_RESEND_FROM_EMAIL: ${SENTINELLA_RESEND_FROM_EMAIL:-onboarding@resend.dev}
       STRIPE_PRICE_ECONOMY_RECURRING: ${STRIPE_PRICE_ECONOMY_RECURRING:-}
       STRIPE_PRICE_ECONOMY_SETUP: ${STRIPE_PRICE_ECONOMY_SETUP:-}
       STRIPE_PRICE_PREMIUM_RECURRING: ${STRIPE_PRICE_PREMIUM_RECURRING:-}
@@ -279,6 +285,16 @@ services:
       JWK_SET_URI: http://iam-service:8081/v1/auth/jwks
       MONITORING_SERVICE_URL: http://monitoring-service:8082
       SENTINELLA_INTERNAL_SERVICE_KEY: sentinella-internal-dev
+      BLOCKCHAIN_FABRIC_ENABLED: ${BLOCKCHAIN_FABRIC_ENABLED:-false}
+      BLOCKCHAIN_FABRIC_CONNECTION_PROFILE: ${BLOCKCHAIN_FABRIC_CONNECTION_PROFILE:-/fabric/config/connection-org1.yaml}
+      BLOCKCHAIN_FABRIC_USER_CERT: ${BLOCKCHAIN_FABRIC_USER_CERT:-/fabric/gateway-identity/cert.pem}
+      BLOCKCHAIN_FABRIC_USER_KEY: ${BLOCKCHAIN_FABRIC_USER_KEY:-/fabric/gateway-identity/key.pem}
+      BLOCKCHAIN_FABRIC_CHANNEL: ${BLOCKCHAIN_FABRIC_CHANNEL:-sentinellachannel}
+      BLOCKCHAIN_FABRIC_CHAINCODE: ${BLOCKCHAIN_FABRIC_CHAINCODE:-sentinella-ledger}
+    volumes:
+      - ./infra/hyperledger-fabric/organizations:/fabric/organizations:ro
+      - ./infra/hyperledger-fabric/gateway-identity:/fabric/gateway-identity:ro
+      - ./infra/hyperledger-fabric/config:/fabric/config:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -330,6 +346,12 @@ services:
     environment:
       SERVER_PORT: "8086"
       STORAGE_LOCAL_BASE_PATH: /tmp/sentinella-reports
+      STORAGE_S3_ENABLED: "true"
+      STORAGE_S3_BUCKET: sentinella
+      STORAGE_S3_PREFIX: reports
+      STORAGE_S3_ACCESS_KEY: minio
+      STORAGE_S3_SECRET_KEY: minio12345
+      STORAGE_S3_ENDPOINT: http://minio:9000
       DATABASE_URL: jdbc:postgresql://postgres:5432/sentinella_reports
       DATABASE_USERNAME: postgres
       DATABASE_PASSWORD: postgres
@@ -353,6 +375,10 @@ services:
         condition: service_started
       rabbitmq:
         condition: service_started
+      minio:
+        condition: service_started
+      minio-init:
+        condition: service_completed_successfully
 
   simulations-service:
     build:
@@ -405,6 +431,11 @@ services:
       - reports-service
       - simulations-service
       - blockchain-service
+
+networks:
+  sentinella-fabric:
+    name: sentinella-fabric
+    driver: bridge
 
 volumes:
   pgdata:
