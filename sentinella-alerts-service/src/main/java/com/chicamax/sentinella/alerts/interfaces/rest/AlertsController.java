@@ -132,7 +132,8 @@ public class AlertsController {
                 actorId,
                 actorRole,
                 resource.assignedTo(),
-                mergeAckNotes(resource)
+                mergeAckNotes(resource),
+                resource.clientAcknowledgedAt()
         ));
         return ResponseEntity.ok(alertAssembler.toResource(updated));
     }

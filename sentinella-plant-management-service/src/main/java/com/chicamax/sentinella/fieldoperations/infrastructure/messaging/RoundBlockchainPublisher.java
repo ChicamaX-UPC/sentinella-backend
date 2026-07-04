@@ -4,9 +4,9 @@ import com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants;
 import com.chicamax.sentinella.fieldoperations.domain.model.aggregates.InspectionRound;
 import com.chicamax.sentinella.fieldoperations.domain.model.entities.ChecklistItem;
 import com.chicamax.sentinella.shared.infrastructure.blockchain.BlockchainHash;
+import com.chicamax.sentinella.shared.infrastructure.blockchain.BlockchainRegisterMessage;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -37,11 +37,12 @@ public class RoundBlockchainPublisher {
         rabbitTemplate.convertAndSend(
                 SentinellaMessagingConstants.SENTINELLA_EXCHANGE,
                 SentinellaMessagingConstants.BLOCKCHAIN_REGISTER_ROUTING,
-                Map.of(
-                        "recordId", UUID.randomUUID(),
-                        "entityType", "ROUND_SYNC",
-                        "entityId", round.getId(),
-                        "contentHash", BlockchainHash.sha256(canonical)
+                BlockchainRegisterMessage.of(
+                        UUID.randomUUID(),
+                        "ROUND_SYNC",
+                        round.getId(),
+                        round.getTailingDamId(),
+                        BlockchainHash.sha256(canonical)
                 )
         );
     }

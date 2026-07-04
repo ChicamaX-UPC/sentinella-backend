@@ -52,6 +52,7 @@ public class SensorReadingCommandServiceImpl implements SensorReadingCommandServ
         });
         sentinellaMetrics.recordIotMessageAccepted(saved.getNodeId(), saved.getSensorType().name());
         eventPublisher.publishEvent(new SensorReadingRegisteredEvent(
+                saved.getId(),
                 saved.getNodeId(),
                 saved.getTimestamp(),
                 saved.getSensorType().name(),

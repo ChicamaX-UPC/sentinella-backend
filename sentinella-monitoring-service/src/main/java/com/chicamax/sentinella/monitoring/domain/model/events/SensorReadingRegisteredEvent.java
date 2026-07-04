@@ -5,6 +5,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public record SensorReadingRegisteredEvent(
+        UUID readingId,
         UUID nodeId,
         OffsetDateTime timestamp,
         String sensorType,

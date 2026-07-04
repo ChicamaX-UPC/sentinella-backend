@@ -27,7 +27,8 @@ public class ReportGenerationConsumer {
                         message.from(),
                         message.to(),
                         message.generatedBy(),
-                        message.notifyEmail()
+                        message.notifyEmail(),
+                        message.reportId()
                 ),
                 message.bearerToken()
         );

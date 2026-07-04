@@ -12,6 +12,7 @@ public record GenerateReportCommand(
         OffsetDateTime from,
         OffsetDateTime to,
         UUID generatedBy,
-        String notifyEmail
+        String notifyEmail,
+        UUID reportId
 ) {
 }

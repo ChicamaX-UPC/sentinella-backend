@@ -2,6 +2,7 @@ package com.chicamax.sentinella.alerts.infrastructure.scheduler;
 
 import com.chicamax.sentinella.alerts.domain.model.aggregates.Alert;
 import com.chicamax.sentinella.alerts.domain.model.entities.AlertAuditEntry;
+import com.chicamax.sentinella.alerts.domain.model.events.AlertEscalatedEvent;
 import com.chicamax.sentinella.alerts.domain.model.valueobjects.AlertChannel;
 import com.chicamax.sentinella.alerts.domain.model.valueobjects.AlertStatus;
 import com.chicamax.sentinella.alerts.domain.services.NotificationService;
@@ -11,6 +12,7 @@ import com.chicamax.sentinella.alerts.infrastructure.persistence.jpa.AlertRuleRe
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,7 @@ public class AlertEscalationScheduler {
     private final AlertRuleRepository alertRuleRepository;
     private final AlertAuditEntryRepository alertAuditEntryRepository;
     private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
     private final boolean enabled;
 
     public AlertEscalationScheduler(
@@ -32,12 +35,14 @@ public class AlertEscalationScheduler {
             AlertRuleRepository alertRuleRepository,
             AlertAuditEntryRepository alertAuditEntryRepository,
             NotificationService notificationService,
+            ApplicationEventPublisher eventPublisher,
             @Value("${sentinella.alerts.escalation.enabled:true}") boolean enabled
     ) {
         this.alertRepository = alertRepository;
         this.alertRuleRepository = alertRuleRepository;
         this.alertAuditEntryRepository = alertAuditEntryRepository;
         this.notificationService = notificationService;
+        this.eventPublisher = eventPublisher;
         this.enabled = enabled;
     }
 
@@ -81,6 +86,7 @@ public class AlertEscalationScheduler {
                             "Escalacion automatica: sin acuse en el plazo de la regla"
                     )
             );
+            eventPublisher.publishEvent(new AlertEscalatedEvent(alert.getId(), alert.getNodeId()));
         }
     }
 }

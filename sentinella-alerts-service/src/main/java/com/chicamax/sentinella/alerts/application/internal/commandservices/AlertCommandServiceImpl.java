@@ -104,7 +104,7 @@ public class AlertCommandServiceImpl implements AlertCommandService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Alerta no encontrada"));
 
         if (command.action() == AlertAction.ACKNOWLEDGE) {
-            alert.acknowledge(command.actorId(), OffsetDateTime.now());
+            alert.acknowledge(command.actorId(), resolveAcknowledgedAt(command.clientAcknowledgedAt()));
             writeAudit(alert.getId(), "ACKNOWLEDGED", command.actorId(), command.actorRole(), command.notes());
         } else if (command.action() == AlertAction.COMPLETE) {
             if (command.assignedTo() == null) {
@@ -141,6 +141,21 @@ public class AlertCommandServiceImpl implements AlertCommandService {
     private void writeAudit(UUID alertId, String action, UUID actorId, String actorRole, String notes) {
         AlertAuditEntry entry = new AlertAuditEntry(UUID.randomUUID(), alertId, action, actorId, actorRole, notes);
         alertAuditEntryRepository.save(entry);
+    }
+
+    /** Acepta marca del dispositivo (offline) con ventana de 30 días y tolerancia de 5 min al futuro. */
+    private static OffsetDateTime resolveAcknowledgedAt(OffsetDateTime clientTime) {
+        if (clientTime == null) {
+            return OffsetDateTime.now();
+        }
+        OffsetDateTime now = OffsetDateTime.now();
+        if (clientTime.isAfter(now.plusMinutes(5))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "clientAcknowledgedAt no puede ser futuro");
+        }
+        if (clientTime.isBefore(now.minusDays(30))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "clientAcknowledgedAt fuera de ventana offline");
+        }
+        return clientTime;
     }
 
     private AlertChannel[] resolveChannels(String channelsFromEvent, UUID ruleId) {

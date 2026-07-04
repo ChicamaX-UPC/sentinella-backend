@@ -7,7 +7,9 @@ import com.chicamax.sentinella.reports.domain.services.StorageService;
 import com.chicamax.sentinella.reports.infrastructure.integration.ReportDataCollector;
 import com.chicamax.sentinella.reports.infrastructure.integration.ReportDataset;
 import com.chicamax.sentinella.reports.infrastructure.persistence.jpa.ReportRepository;
+import com.chicamax.sentinella.reports.infrastructure.messaging.ReportBlockchainPublisher;
 import com.chicamax.sentinella.reports.infrastructure.render.ReportFileRenderer;
+import com.chicamax.sentinella.reports.domain.model.valueobjects.ReportType;
 import com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants;
 import com.chicamax.sentinella.shared.infrastructure.mail.SendGridMailClient;
 import com.chicamax.sentinella.shared.infrastructure.messaging.events.ReportGenerateMessage;
@@ -26,6 +28,7 @@ public class ReportCommandServiceImpl implements ReportCommandService {
     private final ReportDataCollector reportDataCollector;
     private final ObjectProvider<SendGridMailClient> sendGridMailClient;
     private final RabbitTemplate rabbitTemplate;
+    private final ReportBlockchainPublisher reportBlockchainPublisher;
 
     public ReportCommandServiceImpl(
             ReportRepository reportRepository,
@@ -33,7 +36,8 @@ public class ReportCommandServiceImpl implements ReportCommandService {
             ReportFileRenderer reportFileRenderer,
             ReportDataCollector reportDataCollector,
             ObjectProvider<SendGridMailClient> sendGridMailClient,
-            RabbitTemplate rabbitTemplate
+            RabbitTemplate rabbitTemplate,
+            ReportBlockchainPublisher reportBlockchainPublisher
     ) {
         this.reportRepository = reportRepository;
         this.storageService = storageService;
@@ -41,6 +45,7 @@ public class ReportCommandServiceImpl implements ReportCommandService {
         this.reportDataCollector = reportDataCollector;
         this.sendGridMailClient = sendGridMailClient;
         this.rabbitTemplate = rabbitTemplate;
+        this.reportBlockchainPublisher = reportBlockchainPublisher;
     }
 
     @Override
@@ -71,8 +76,9 @@ public class ReportCommandServiceImpl implements ReportCommandService {
         byte[] content = reportFileRenderer.render(command, dataset);
         String storageKey = storageService.saveReport(content, filename);
 
+        UUID reportId = command.reportId() != null ? command.reportId() : UUID.randomUUID();
         Report report = new Report(
-                UUID.randomUUID(),
+                reportId,
                 command.type(),
                 command.format(),
                 command.tailingDamId(),
@@ -82,6 +88,9 @@ public class ReportCommandServiceImpl implements ReportCommandService {
                 storageKey
         );
         Report saved = reportRepository.save(report);
+        if (command.type() == ReportType.REGULATORY_OEFA) {
+            reportBlockchainPublisher.publishRegulatoryReport(saved, content);
+        }
         maybeSendByEmail(command.notifyEmail(), saved.getId(), command.type().name());
         return saved;
     }

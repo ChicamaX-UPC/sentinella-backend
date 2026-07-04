@@ -1,6 +1,7 @@
 package com.chicamax.sentinella.alerts.domain.model.commands;
 
 import com.chicamax.sentinella.alerts.domain.model.valueobjects.AlertAction;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public record UpdateAlertCommand(
@@ -9,6 +10,7 @@ public record UpdateAlertCommand(
         UUID actorId,
         String actorRole,
         UUID assignedTo,
-        String notes
+        String notes,
+        OffsetDateTime clientAcknowledgedAt
 ) {
 }

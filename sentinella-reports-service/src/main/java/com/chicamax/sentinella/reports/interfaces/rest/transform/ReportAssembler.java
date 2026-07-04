@@ -18,7 +18,8 @@ public class ReportAssembler {
                 resource.from(),
                 resource.to(),
                 generatedBy,
-                resource.notifyEmail()
+                resource.notifyEmail(),
+                null
         );
     }
 

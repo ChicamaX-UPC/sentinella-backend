@@ -3,18 +3,20 @@ package com.chicamax.sentinella.alerts.infrastructure.messaging;
 import com.chicamax.sentinella.alerts.domain.model.aggregates.Alert;
 import com.chicamax.sentinella.alerts.domain.model.events.AlertClosedEvent;
 import com.chicamax.sentinella.alerts.domain.model.events.AlertCreatedEvent;
+import com.chicamax.sentinella.alerts.domain.model.events.AlertEscalatedEvent;
+import com.chicamax.sentinella.alerts.domain.model.events.AlertEvidenceUploadedEvent;
 import com.chicamax.sentinella.alerts.domain.model.events.AlertStatusUpdatedEvent;
 import com.chicamax.sentinella.alerts.domain.model.valueobjects.AlertStatus;
 import com.chicamax.sentinella.alerts.infrastructure.persistence.jpa.AlertRepository;
 import com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants;
 import com.chicamax.sentinella.shared.infrastructure.blockchain.BlockchainHash;
-import java.util.Map;
+import com.chicamax.sentinella.shared.infrastructure.blockchain.BlockchainRegisterMessage;
 import java.util.UUID;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-/** US17 — publica hashes canonicos a la cola blockchain.register (Fabric stub). */
+/** US17 — publica hashes canonicos a la cola blockchain.register (Fabric stub o Gateway). */
 @Component
 public class AlertBlockchainPublisher {
 
@@ -31,19 +33,26 @@ public class AlertBlockchainPublisher {
         alertRepository.findById(event.alertId()).ifPresent(alert -> publish(
                 "ALERT",
                 alert.getId(),
+                alert.getNodeId(),
                 canonicalAlertCreated(alert)
         ));
     }
 
     @EventListener
     public void onAlertStatusUpdated(AlertStatusUpdatedEvent event) {
-        if (!AlertStatus.ACKNOWLEDGED.name().equals(event.status())) {
+        String entityType = switch (event.status()) {
+            case "ACKNOWLEDGED" -> "ALERT_ACK";
+            case "COMPLETED" -> "ALERT_COMPLETED";
+            default -> null;
+        };
+        if (entityType == null) {
             return;
         }
         alertRepository.findById(event.alertId()).ifPresent(alert -> publish(
-                "ALERT_ACK",
+                entityType,
                 alert.getId(),
-                canonicalAlertAck(alert)
+                alert.getNodeId(),
+                entityType.equals("ALERT_ACK") ? canonicalAlertAck(alert) : canonicalAlertCompleted(alert)
         ));
     }
 
@@ -52,19 +61,53 @@ public class AlertBlockchainPublisher {
         alertRepository.findById(event.alertId()).ifPresent(alert -> publish(
                 "ALERT_CLOSED",
                 alert.getId(),
+                alert.getNodeId(),
                 canonicalAlertClosed(alert)
         ));
     }
 
-    private void publish(String entityType, UUID entityId, String canonicalPayload) {
+    @EventListener
+    public void onAlertEscalated(AlertEscalatedEvent event) {
+        alertRepository.findById(event.alertId()).ifPresent(alert -> publish(
+                "ALERT_ESCALATED",
+                alert.getId(),
+                alert.getNodeId(),
+                canonicalAlertEscalated(alert)
+        ));
+    }
+
+    @EventListener
+    public void onAlertEvidenceUploaded(AlertEvidenceUploadedEvent event) {
+        publish(
+                "ALERT_EVIDENCE",
+                event.evidenceId(),
+                event.nodeId(),
+                event.alertId(),
+                canonicalAlertEvidence(event)
+        );
+    }
+
+    private void publish(String entityType, UUID entityId, UUID nodeId, String canonicalPayload) {
+        publish(entityType, entityId, nodeId, entityId, canonicalPayload);
+    }
+
+    private void publish(
+            String entityType,
+            UUID entityId,
+            UUID nodeId,
+            UUID relatedEntityId,
+            String canonicalPayload
+    ) {
         rabbitTemplate.convertAndSend(
                 SentinellaMessagingConstants.SENTINELLA_EXCHANGE,
                 SentinellaMessagingConstants.BLOCKCHAIN_REGISTER_ROUTING,
-                Map.of(
-                        "recordId", UUID.randomUUID(),
-                        "entityType", entityType,
-                        "entityId", entityId,
-                        "contentHash", BlockchainHash.sha256(canonicalPayload)
+                BlockchainRegisterMessage.of(
+                        UUID.randomUUID(),
+                        entityType,
+                        entityId,
+                        nodeId,
+                        BlockchainHash.sha256(canonicalPayload),
+                        relatedEntityId
                 )
         );
     }
@@ -92,6 +135,16 @@ public class AlertBlockchainPublisher {
         );
     }
 
+    private static String canonicalAlertCompleted(Alert alert) {
+        return String.join("|",
+                "ALERT_COMPLETED",
+                alert.getId().toString(),
+                alert.getNodeId().toString(),
+                alert.getAssignedTo() == null ? "" : alert.getAssignedTo().toString(),
+                alert.getUpdatedAt() == null ? "" : alert.getUpdatedAt().toString()
+        );
+    }
+
     private static String canonicalAlertClosed(Alert alert) {
         return String.join("|",
                 "ALERT_CLOSED",
@@ -100,6 +153,27 @@ public class AlertBlockchainPublisher {
                 alert.getClosedBy() == null ? "" : alert.getClosedBy().toString(),
                 alert.getClosedAt() == null ? "" : alert.getClosedAt().toString(),
                 alert.getResolutionNotes() == null ? "" : alert.getResolutionNotes()
+        );
+    }
+
+    private static String canonicalAlertEscalated(Alert alert) {
+        return String.join("|",
+                "ALERT_ESCALATED",
+                alert.getId().toString(),
+                alert.getNodeId().toString(),
+                alert.getCreatedAt() == null ? "" : alert.getCreatedAt().toString()
+        );
+    }
+
+    private static String canonicalAlertEvidence(AlertEvidenceUploadedEvent event) {
+        return String.join("|",
+                "ALERT_EVIDENCE",
+                event.evidenceId().toString(),
+                event.alertId().toString(),
+                event.storageKey() == null ? "" : event.storageKey(),
+                event.contentType() == null ? "" : event.contentType(),
+                event.uploadedBy() == null ? "" : event.uploadedBy().toString(),
+                event.uploadedAt() == null ? "" : event.uploadedAt().toString()
         );
     }
 }

@@ -1,12 +1,15 @@
 package com.chicamax.sentinella.alerts.interfaces.rest;
 
+import com.chicamax.sentinella.alerts.domain.model.aggregates.Alert;
 import com.chicamax.sentinella.alerts.domain.model.entities.AlertEvidence;
+import com.chicamax.sentinella.alerts.domain.model.events.AlertEvidenceUploadedEvent;
 import com.chicamax.sentinella.alerts.domain.services.AlertQueryService;
 import com.chicamax.sentinella.alerts.infrastructure.persistence.jpa.AlertEvidenceRepository;
 import com.chicamax.sentinella.alerts.infrastructure.storage.AlertEvidenceStorageService;
 import com.chicamax.sentinella.alerts.interfaces.rest.resources.AlertEvidenceResource;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -29,15 +32,18 @@ public class AlertEvidenceController {
     private final AlertQueryService alertQueryService;
     private final AlertEvidenceRepository alertEvidenceRepository;
     private final AlertEvidenceStorageService alertEvidenceStorageService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public AlertEvidenceController(
             AlertQueryService alertQueryService,
             AlertEvidenceRepository alertEvidenceRepository,
-            AlertEvidenceStorageService alertEvidenceStorageService
+            AlertEvidenceStorageService alertEvidenceStorageService,
+            ApplicationEventPublisher eventPublisher
     ) {
         this.alertQueryService = alertQueryService;
         this.alertEvidenceRepository = alertEvidenceRepository;
         this.alertEvidenceStorageService = alertEvidenceStorageService;
+        this.eventPublisher = eventPublisher;
     }
 
     @GetMapping
@@ -56,7 +62,7 @@ public class AlertEvidenceController {
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        ensureAlertExists(alertId);
+        Alert alert = ensureAlertExists(alertId);
         try {
             String filename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "evidence.bin";
             String key = alertEvidenceStorageService.store(alertId, file.getBytes(), filename);
@@ -67,14 +73,24 @@ public class AlertEvidenceController {
                     file.getContentType(),
                     UUID.fromString(jwt.getSubject())
             );
-            return ResponseEntity.ok(toResource(alertEvidenceRepository.save(evidence)));
+            AlertEvidence saved = alertEvidenceRepository.save(evidence);
+            eventPublisher.publishEvent(new AlertEvidenceUploadedEvent(
+                    saved.getId(),
+                    alertId,
+                    alert.getNodeId(),
+                    saved.getStorageKey(),
+                    saved.getContentType(),
+                    saved.getUploadedBy(),
+                    saved.getUploadedAt()
+            ));
+            return ResponseEntity.ok(toResource(saved));
         } catch (java.io.IOException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Archivo invalido");
         }
     }
 
-    private void ensureAlertExists(UUID alertId) {
-        alertQueryService.findById(alertId)
+    private Alert ensureAlertExists(UUID alertId) {
+        return alertQueryService.findById(alertId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Alerta no encontrada"));
     }
 
