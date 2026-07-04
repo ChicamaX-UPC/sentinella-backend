@@ -1,6 +1,9 @@
 package com.chicamax.sentinella.payments.interfaces.rest;
 
+import com.chicamax.sentinella.payments.domain.model.aggregates.Payment;
 import com.chicamax.sentinella.payments.domain.services.PaymentCommandService;
+import com.chicamax.sentinella.payments.infrastructure.stripe.StripeCheckoutConfirmationService;
+import com.chicamax.sentinella.payments.interfaces.rest.resources.CheckoutConfirmResource;
 import com.chicamax.sentinella.payments.interfaces.rest.resources.CheckoutResource;
 import com.chicamax.sentinella.payments.interfaces.rest.resources.PaymentResource;
 import com.chicamax.sentinella.payments.interfaces.rest.resources.PlanResource;
@@ -24,13 +27,16 @@ public class PaymentController {
 
     private final PaymentCommandService paymentCommandService;
     private final PaymentResourceAssembler paymentResourceAssembler;
+    private final StripeCheckoutConfirmationService stripeCheckoutConfirmationService;
 
     public PaymentController(
             PaymentCommandService paymentCommandService,
-            PaymentResourceAssembler paymentResourceAssembler
+            PaymentResourceAssembler paymentResourceAssembler,
+            StripeCheckoutConfirmationService stripeCheckoutConfirmationService
     ) {
         this.paymentCommandService = paymentCommandService;
         this.paymentResourceAssembler = paymentResourceAssembler;
+        this.stripeCheckoutConfirmationService = stripeCheckoutConfirmationService;
     }
 
     @GetMapping("/plans")
@@ -56,5 +62,16 @@ public class PaymentController {
         UUID userId = UUID.fromString(jwt.getSubject());
         String portalUrl = paymentCommandService.createPortalSession(userId);
         return ResponseEntity.ok(new PortalResource(portalUrl));
+    }
+
+    /** Confirma pago al volver de Stripe Checkout (fallback si el webhook no llegó). */
+    @PostMapping("/checkout/confirm")
+    public ResponseEntity<PaymentResource> confirmCheckout(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody CheckoutConfirmResource resource
+    ) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        Payment payment = stripeCheckoutConfirmationService.confirmSession(userId, resource.sessionId());
+        return ResponseEntity.ok(paymentResourceAssembler.toResource(payment, null));
     }
 }

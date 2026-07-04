@@ -2,6 +2,7 @@ package com.chicamax.sentinella.shared.infrastructure.mail;
 
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -9,7 +10,8 @@ import org.springframework.web.client.RestClient;
 
 @Component
 @ConditionalOnProperty(name = "sentinella.sendgrid.api-key")
-public class SendGridMailClient {
+@ConditionalOnMissingBean(ResendMailClient.class)
+public class SendGridMailClient implements PlainTextMailClient {
 
     private final RestClient restClient;
     private final String apiKey;
@@ -25,6 +27,7 @@ public class SendGridMailClient {
         this.fromEmail = fromEmail;
     }
 
+    @Override
     public void send(String toEmail, String subject, String textBody) {
         Map<String, Object> payload = Map.of(
                 "personalizations", new Object[] {

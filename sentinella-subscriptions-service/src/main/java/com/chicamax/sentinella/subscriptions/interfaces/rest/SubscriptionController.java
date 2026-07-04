@@ -2,6 +2,7 @@ package com.chicamax.sentinella.subscriptions.interfaces.rest;
 
 import com.chicamax.sentinella.subscriptions.domain.services.SubscriptionCommandService;
 import com.chicamax.sentinella.subscriptions.interfaces.rest.resources.SubscriptionResource;
+import com.chicamax.sentinella.subscriptions.interfaces.rest.resources.SubscriptionStatusResource;
 import com.chicamax.sentinella.subscriptions.interfaces.rest.transform.SubscriptionResourceAssembler;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +32,16 @@ public class SubscriptionController {
         UUID userId = UUID.fromString(jwt.getSubject());
         return subscriptionCommandService.findActiveByUserId(userId)
                 .map(subscription -> ResponseEntity.ok(subscriptionResourceAssembler.toResource(subscription)))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    /** Siempre 200 — evita 404 en clientes cuando aún no hay plan (p. ej. post-registro). */
+    @GetMapping("/status")
+    public ResponseEntity<SubscriptionStatusResource> getStatus(@AuthenticationPrincipal Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        return subscriptionCommandService.findActiveByUserId(userId)
+                .map(subscription -> ResponseEntity.ok(
+                        SubscriptionStatusResource.of(subscriptionResourceAssembler.toResource(subscription))))
+                .orElseGet(() -> ResponseEntity.ok(SubscriptionStatusResource.inactive()));
     }
 }

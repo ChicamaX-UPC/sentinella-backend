@@ -1,6 +1,6 @@
 package com.chicamax.sentinella.payments.infrastructure.billing;
 
-import com.chicamax.sentinella.shared.infrastructure.mail.SendGridMailClient;
+import com.chicamax.sentinella.shared.infrastructure.mail.PlainTextMailClient;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
@@ -17,9 +17,9 @@ public class BillingNotificationService {
     private static final DateTimeFormatter DATE_FMT =
             DateTimeFormatter.ofPattern("d 'de' MMMM yyyy", Locale.forLanguageTag("es"));
 
-    private final ObjectProvider<SendGridMailClient> mailClient;
+    private final ObjectProvider<PlainTextMailClient> mailClient;
 
-    public BillingNotificationService(ObjectProvider<SendGridMailClient> mailClient) {
+    public BillingNotificationService(ObjectProvider<PlainTextMailClient> mailClient) {
         this.mailClient = mailClient;
     }
 
@@ -91,9 +91,9 @@ public class BillingNotificationService {
     }
 
     private void dispatch(String toEmail, String subject, String body) {
-        SendGridMailClient client = mailClient.getIfAvailable();
+        PlainTextMailClient client = mailClient.getIfAvailable();
         if (client == null) {
-            log.info("SendGrid no configurado; correo omitido [{}] → {}", subject, toEmail);
+            log.info("Correo no configurado (Resend/SendGrid); omitido [{}] → {}", subject, toEmail);
             return;
         }
         try {

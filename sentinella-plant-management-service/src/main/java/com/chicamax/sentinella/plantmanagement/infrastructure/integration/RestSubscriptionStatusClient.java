@@ -50,13 +50,18 @@ public class RestSubscriptionStatusClient implements SubscriptionStatusClient {
             return null;
         }
         try {
-            return restClient.get()
+            var response = restClient.get()
                     .uri("/v1/subscriptions/active")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt.getTokenValue())
                     .retrieve()
-                    .body(ActiveSubscription.class);
+                    .toEntity(ActiveSubscription.class);
+            if (response.getStatusCode().value() == HttpStatus.NO_CONTENT.value() || response.getBody() == null) {
+                return null;
+            }
+            return response.getBody();
         } catch (RestClientResponseException ex) {
-            if (ex.getStatusCode().value() == HttpStatus.NOT_FOUND.value()) {
+            if (ex.getStatusCode().value() == HttpStatus.NOT_FOUND.value()
+                    || ex.getStatusCode().value() == HttpStatus.NO_CONTENT.value()) {
                 return null;
             }
             throw ex;
