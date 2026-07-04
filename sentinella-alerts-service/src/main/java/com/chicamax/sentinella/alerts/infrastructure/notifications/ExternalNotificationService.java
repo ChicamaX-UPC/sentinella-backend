@@ -3,6 +3,8 @@ package com.chicamax.sentinella.alerts.infrastructure.notifications;
 import com.chicamax.sentinella.alerts.domain.model.aggregates.Alert;
 import com.chicamax.sentinella.alerts.domain.model.valueobjects.AlertChannel;
 import com.chicamax.sentinella.alerts.domain.services.NotificationService;
+import com.chicamax.sentinella.shared.infrastructure.mail.PlainTextMailClient;
+import com.chicamax.sentinella.shared.infrastructure.mail.SentinellaEmailTemplate;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
@@ -16,6 +18,7 @@ import java.util.Arrays;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -39,6 +42,8 @@ public class ExternalNotificationService implements NotificationService {
     private final String smsFrom;
     private final String smsTo;
     private final ExpoPushDispatchService expoPushDispatchService;
+    private final ObjectProvider<PlainTextMailClient> mailClient;
+    private final String appUrl;
 
     public ExternalNotificationService(
             @Value("${alerts.notifications.enabled:false}") boolean notificationsEnabled,
@@ -52,7 +57,9 @@ public class ExternalNotificationService implements NotificationService {
             @Value("${alerts.notifications.sms.twilio.auth-token:}") String twilioAuthToken,
             @Value("${alerts.notifications.sms.from:}") String smsFrom,
             @Value("${alerts.notifications.sms.to:}") String smsTo,
-            ExpoPushDispatchService expoPushDispatchService
+            ExpoPushDispatchService expoPushDispatchService,
+            ObjectProvider<PlainTextMailClient> mailClient,
+            @Value("${sentinella.app-url:https://sentinella-frontend.vercel.app}") String appUrl
     ) {
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
@@ -69,6 +76,8 @@ public class ExternalNotificationService implements NotificationService {
         this.smsFrom = smsFrom;
         this.smsTo = smsTo;
         this.expoPushDispatchService = expoPushDispatchService;
+        this.mailClient = mailClient;
+        this.appUrl = appUrl == null ? "https://sentinella-frontend.vercel.app" : appUrl.replaceAll("/$", "");
     }
 
     @Override
@@ -97,7 +106,39 @@ public class ExternalNotificationService implements NotificationService {
     }
 
     private void sendEmail(Alert alert) throws IOException, InterruptedException {
-        if (!emailEnabled || isBlank(emailApiKey) || isBlank(emailFrom) || isBlank(emailTo)) {
+        if (!emailEnabled || isBlank(emailTo)) {
+            return;
+        }
+
+        PlainTextMailClient resendClient = mailClient.getIfAvailable();
+        if (resendClient != null) {
+            String text = "Se registró una alerta %s en el nodo %s. Sensor: %s. Valor: %s."
+                    .formatted(
+                            alert.getSeverity().name(),
+                            alert.getNodeId(),
+                            alert.getSensorType(),
+                            formatValue(alert.getTriggeredValue())
+                    );
+            String htmlBody = SentinellaEmailTemplate.detailRow("Severidad", alert.getSeverity().name())
+                    + SentinellaEmailTemplate.detailRow("Nodo", alert.getNodeId().toString())
+                    + SentinellaEmailTemplate.detailRow("Sensor", alert.getSensorType())
+                    + SentinellaEmailTemplate.detailRow("Valor", formatValue(alert.getTriggeredValue()));
+            String html = SentinellaEmailTemplate.render(
+                    "Alerta operativa",
+                    htmlBody,
+                    "Ver alerta",
+                    appUrl + "/alerts/" + alert.getId()
+            );
+            resendClient.sendRich(
+                    emailTo.trim(),
+                    "Alerta %s — Sentinella".formatted(alert.getSeverity().name()),
+                    text,
+                    html
+            );
+            return;
+        }
+
+        if (isBlank(emailApiKey) || isBlank(emailFrom)) {
             return;
         }
 

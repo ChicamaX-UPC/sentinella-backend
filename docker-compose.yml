@@ -143,6 +143,9 @@ services:
       ALERTS_EMAIL_API_KEY: ${SENDGRID_API_KEY:-}
       ALERTS_EMAIL_FROM: ${SENDGRID_FROM_EMAIL:-}
       ALERTS_EMAIL_TO: ${ALERTS_EMAIL_TO:-}
+      SENTINELLA_RESEND_API_KEY: ${SENTINELLA_RESEND_API_KEY:-}
+      SENTINELLA_RESEND_FROM_EMAIL: ${SENTINELLA_RESEND_FROM_EMAIL:-Sentinella <sentinella@excusasjeans.com>}
+      SENTINELLA_APP_URL: ${SENTINELLA_APP_URL:-https://sentinella-frontend.vercel.app}
     depends_on:
       postgres:
         condition: service_healthy
@@ -232,7 +235,8 @@ services:
       SENTINELLA_SENDGRID_API_KEY: ${SENTINELLA_SENDGRID_API_KEY:-}
       SENTINELLA_SENDGRID_FROM_EMAIL: ${SENTINELLA_SENDGRID_FROM_EMAIL:-}
       SENTINELLA_RESEND_API_KEY: ${SENTINELLA_RESEND_API_KEY:-}
-      SENTINELLA_RESEND_FROM_EMAIL: ${SENTINELLA_RESEND_FROM_EMAIL:-onboarding@resend.dev}
+      SENTINELLA_RESEND_FROM_EMAIL: ${SENTINELLA_RESEND_FROM_EMAIL:-Sentinella <sentinella@excusasjeans.com>}
+      SENTINELLA_APP_URL: ${SENTINELLA_APP_URL:-https://sentinella-frontend.vercel.app}
       STRIPE_PRICE_ECONOMY_RECURRING: ${STRIPE_PRICE_ECONOMY_RECURRING:-}
       STRIPE_PRICE_ECONOMY_SETUP: ${STRIPE_PRICE_ECONOMY_SETUP:-}
       STRIPE_PRICE_PREMIUM_RECURRING: ${STRIPE_PRICE_PREMIUM_RECURRING:-}
@@ -362,7 +366,10 @@ services:
       ALERTS_BASE_URL: http://alerts-service:8083
       FIELDOPS_BASE_URL: http://plant-management-service:8092
       SENTINELLA_SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
-      SENTINELLA_SENDGRID_FROM_EMAIL: ${SENDGRID_FROM_EMAIL:-reports@sentinella.demo}
+      SENTINELLA_SENDGRID_FROM_EMAIL: ${SENDGRID_FROM_EMAIL:-sentinella@excusasjeans.com}
+      SENTINELLA_RESEND_API_KEY: ${SENTINELLA_RESEND_API_KEY:-}
+      SENTINELLA_RESEND_FROM_EMAIL: ${SENTINELLA_RESEND_FROM_EMAIL:-Sentinella <sentinella@excusasjeans.com>}
+      SENTINELLA_APP_URL: ${SENTINELLA_APP_URL:-https://sentinella-frontend.vercel.app}
     depends_on:
       postgres:
         condition: service_healthy

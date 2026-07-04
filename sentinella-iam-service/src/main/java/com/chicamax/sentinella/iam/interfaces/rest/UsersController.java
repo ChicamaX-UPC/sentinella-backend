@@ -7,6 +7,7 @@ import com.chicamax.sentinella.iam.domain.model.valueobjects.Role;
 import com.chicamax.sentinella.iam.domain.services.UserCommandService;
 import com.chicamax.sentinella.iam.domain.services.UserQueryService;
 import com.chicamax.sentinella.iam.interfaces.rest.resources.CreateUserResource;
+import com.chicamax.sentinella.iam.interfaces.rest.resources.OrganizationMemberResource;
 import com.chicamax.sentinella.iam.interfaces.rest.resources.UpdateProfileResource;
 import com.chicamax.sentinella.iam.interfaces.rest.resources.UpdateUserDetailsResource;
 import com.chicamax.sentinella.iam.interfaces.rest.resources.UpdateUserPermissionsResource;
@@ -62,6 +63,23 @@ public class UsersController {
                 .map(u -> new UserSummaryResource(u.getId(), u.getFullName(), u.getEmail()))
                 .toList();
         return ResponseEntity.ok(users);
+    }
+
+    @GetMapping("/members")
+    public ResponseEntity<List<OrganizationMemberResource>> getOrganizationMembers(@AuthenticationPrincipal Jwt jwt) {
+        GetAllUsersQuery query = usersQueryFor(jwt);
+        List<OrganizationMemberResource> members = userQueryService.handle(query)
+                .stream()
+                .filter(User::isActive)
+                .map(u -> new OrganizationMemberResource(
+                        u.getId(),
+                        u.getFullName(),
+                        u.getEmail(),
+                        u.getRole(),
+                        u.getJobTitle(),
+                        u.isActive()))
+                .toList();
+        return ResponseEntity.ok(members);
     }
 
     @GetMapping("/me")

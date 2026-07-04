@@ -4,6 +4,7 @@ import com.chicamax.sentinella.payments.domain.model.aggregates.Payment;
 import com.chicamax.sentinella.payments.domain.services.PaymentCommandService;
 import com.chicamax.sentinella.payments.infrastructure.billing.BillingNotificationService;
 import com.chicamax.sentinella.payments.infrastructure.persistence.jpa.BillingCustomerRepository;
+import com.chicamax.sentinella.payments.infrastructure.persistence.jpa.PaymentRepository;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Invoice;
 import com.stripe.model.checkout.Session;
@@ -22,17 +23,20 @@ public class StripeCheckoutConfirmationService {
 
     private final StripeProperties stripeProperties;
     private final PaymentCommandService paymentCommandService;
+    private final PaymentRepository paymentRepository;
     private final BillingNotificationService billingNotificationService;
     private final BillingCustomerRepository billingCustomerRepository;
 
     public StripeCheckoutConfirmationService(
             StripeProperties stripeProperties,
             PaymentCommandService paymentCommandService,
+            PaymentRepository paymentRepository,
             BillingNotificationService billingNotificationService,
             BillingCustomerRepository billingCustomerRepository
     ) {
         this.stripeProperties = stripeProperties;
         this.paymentCommandService = paymentCommandService;
+        this.paymentRepository = paymentRepository;
         this.billingNotificationService = billingNotificationService;
         this.billingCustomerRepository = billingCustomerRepository;
     }
@@ -47,24 +51,34 @@ public class StripeCheckoutConfirmationService {
 
         try {
             Session session = Session.retrieve(sessionId);
-            assertSessionBelongsToUser(userId, session);
+            UUID paymentId = resolvePaymentId(session);
+            Payment payment = paymentRepository.findById(paymentId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pago no encontrado"));
+
+            if (!payment.getUserId().equals(userId)) {
+                log.warn(
+                        "Confirmación rechazada: pago {} pertenece a {} y el JWT es {}",
+                        paymentId,
+                        payment.getUserId(),
+                        userId
+                );
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sesión de pago no válida para este usuario");
+            }
+
+            if (payment.isCompleted()) {
+                log.info("Pago {} ya confirmado (p. ej. vía webhook Stripe)", paymentId);
+                return payment;
+            }
+
             if (!"complete".equalsIgnoreCase(session.getStatus())) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El pago aún no está completado");
             }
 
-            UUID paymentId = resolvePaymentId(session);
-            Payment payment = paymentCommandService.confirmPayment(paymentId, session.getSubscription());
-            sendReceiptIfPossible(userId, session, payment);
-            return payment;
+            Payment confirmed = paymentCommandService.confirmPayment(paymentId, session.getSubscription());
+            sendReceiptIfPossible(userId, session, confirmed);
+            return confirmed;
         } catch (StripeException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "No se pudo verificar la sesión de Stripe", ex);
-        }
-    }
-
-    private static void assertSessionBelongsToUser(UUID userId, Session session) {
-        String sessionUserId = session.getMetadata() != null ? session.getMetadata().get("userId") : null;
-        if (sessionUserId == null || !userId.toString().equals(sessionUserId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sesión de pago no válida para este usuario");
         }
     }
 

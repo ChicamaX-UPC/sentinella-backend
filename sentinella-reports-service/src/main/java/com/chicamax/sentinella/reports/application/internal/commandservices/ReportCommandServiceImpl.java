@@ -11,11 +11,13 @@ import com.chicamax.sentinella.reports.infrastructure.messaging.ReportBlockchain
 import com.chicamax.sentinella.reports.infrastructure.render.ReportFileRenderer;
 import com.chicamax.sentinella.reports.domain.model.valueobjects.ReportType;
 import com.chicamax.sentinella.contracts.messaging.SentinellaMessagingConstants;
-import com.chicamax.sentinella.shared.infrastructure.mail.SendGridMailClient;
+import com.chicamax.sentinella.shared.infrastructure.mail.PlainTextMailClient;
+import com.chicamax.sentinella.shared.infrastructure.mail.SentinellaEmailTemplate;
 import com.chicamax.sentinella.shared.infrastructure.messaging.events.ReportGenerateMessage;
 import java.util.UUID;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,26 +28,29 @@ public class ReportCommandServiceImpl implements ReportCommandService {
     private final StorageService storageService;
     private final ReportFileRenderer reportFileRenderer;
     private final ReportDataCollector reportDataCollector;
-    private final ObjectProvider<SendGridMailClient> sendGridMailClient;
+    private final ObjectProvider<PlainTextMailClient> mailClient;
     private final RabbitTemplate rabbitTemplate;
     private final ReportBlockchainPublisher reportBlockchainPublisher;
+    private final String appUrl;
 
     public ReportCommandServiceImpl(
             ReportRepository reportRepository,
             StorageService storageService,
             ReportFileRenderer reportFileRenderer,
             ReportDataCollector reportDataCollector,
-            ObjectProvider<SendGridMailClient> sendGridMailClient,
+            ObjectProvider<PlainTextMailClient> mailClient,
             RabbitTemplate rabbitTemplate,
-            ReportBlockchainPublisher reportBlockchainPublisher
+            ReportBlockchainPublisher reportBlockchainPublisher,
+            @Value("${sentinella.app-url:https://sentinella-frontend.vercel.app}") String appUrl
     ) {
         this.reportRepository = reportRepository;
         this.storageService = storageService;
         this.reportFileRenderer = reportFileRenderer;
         this.reportDataCollector = reportDataCollector;
-        this.sendGridMailClient = sendGridMailClient;
+        this.mailClient = mailClient;
         this.rabbitTemplate = rabbitTemplate;
         this.reportBlockchainPublisher = reportBlockchainPublisher;
+        this.appUrl = appUrl == null ? "https://sentinella-frontend.vercel.app" : appUrl.replaceAll("/$", "");
     }
 
     @Override
@@ -99,14 +104,20 @@ public class ReportCommandServiceImpl implements ReportCommandService {
         if (email == null || email.isBlank()) {
             return;
         }
-        SendGridMailClient client = sendGridMailClient.getIfAvailable();
+        PlainTextMailClient client = mailClient.getIfAvailable();
         if (client == null) {
             return;
         }
-        client.send(
-                email.trim(),
-                "Sentinella — informe " + reportType,
-                "Su informe " + reportId + " fue generado y esta disponible en la plataforma Sentinella."
+        String text = "Su informe %s (%s) fue generado y está disponible en la plataforma Sentinella.".formatted(reportId, reportType);
+        String htmlBody = SentinellaEmailTemplate.paragraphs(text)
+                + SentinellaEmailTemplate.detailRow("Informe", reportType)
+                + SentinellaEmailTemplate.detailRow("Referencia", reportId.toString());
+        String html = SentinellaEmailTemplate.render(
+                "Informe listo",
+                htmlBody,
+                "Ver informes",
+                appUrl + "/reports"
         );
+        client.sendRich(email.trim(), "Sentinella — informe " + reportType, text, html);
     }
 }

@@ -1,5 +1,8 @@
 package com.chicamax.sentinella.shared.infrastructure.mail;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -20,7 +23,7 @@ public class SendGridMailClient implements PlainTextMailClient {
     public SendGridMailClient(
             RestClient.Builder restClientBuilder,
             @Value("${sentinella.sendgrid.api-key}") String apiKey,
-            @Value("${sentinella.sendgrid.from-email:alerts@sentinella.demo}") String fromEmail
+            @Value("${sentinella.sendgrid.from-email:sentinella@excusasjeans.com}") String fromEmail
     ) {
         this.restClient = restClientBuilder.build();
         this.apiKey = apiKey;
@@ -28,17 +31,28 @@ public class SendGridMailClient implements PlainTextMailClient {
     }
 
     @Override
-    public void send(String toEmail, String subject, String textBody) {
-        Map<String, Object> payload = Map.of(
-                "personalizations", new Object[] {
-                        Map.of("to", new Object[] {Map.of("email", toEmail)})
-                },
-                "from", Map.of("email", fromEmail),
-                "subject", subject,
-                "content", new Object[] {
-                        Map.of("type", "text/plain", "value", textBody)
-                }
-        );
+    public void sendPlain(String toEmail, String subject, String textBody) {
+        dispatch(toEmail, subject, textBody, null);
+    }
+
+    @Override
+    public void sendRich(String toEmail, String subject, String textBody, String htmlBody) {
+        dispatch(toEmail, subject, textBody, htmlBody);
+    }
+
+    private void dispatch(String toEmail, String subject, String textBody, String htmlBody) {
+        List<Map<String, String>> content = new ArrayList<>();
+        content.add(Map.of("type", "text/plain", "value", textBody));
+        if (htmlBody != null && !htmlBody.isBlank()) {
+            content.add(Map.of("type", "text/html", "value", htmlBody));
+        }
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("personalizations", List.of(Map.of("to", List.of(Map.of("email", toEmail)))));
+        payload.put("from", Map.of("email", fromEmail, "name", "Sentinella"));
+        payload.put("subject", subject);
+        payload.put("content", content);
+
         restClient.post()
                 .uri("https://api.sendgrid.com/v3/mail/send")
                 .header("Authorization", "Bearer " + apiKey)

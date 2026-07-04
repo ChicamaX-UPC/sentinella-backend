@@ -1,5 +1,6 @@
 package com.chicamax.sentinella.shared.infrastructure.mail;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,7 +21,7 @@ public class ResendMailClient implements PlainTextMailClient {
     public ResendMailClient(
             RestClient.Builder restClientBuilder,
             @Value("${sentinella.resend.api-key}") String apiKey,
-            @Value("${sentinella.resend.from-email:onboarding@resend.dev}") String fromEmail
+            @Value("${sentinella.resend.from-email:Sentinella <sentinella@excusasjeans.com>}") String fromEmail
     ) {
         this.fromEmail = fromEmail;
         this.restClient = restClientBuilder
@@ -30,13 +31,24 @@ public class ResendMailClient implements PlainTextMailClient {
     }
 
     @Override
-    public void send(String toEmail, String subject, String textBody) {
-        Map<String, Object> payload = Map.of(
-                "from", fromEmail,
-                "to", List.of(toEmail),
-                "subject", subject,
-                "text", textBody
-        );
+    public void sendPlain(String toEmail, String subject, String textBody) {
+        dispatch(toEmail, subject, textBody, null);
+    }
+
+    @Override
+    public void sendRich(String toEmail, String subject, String textBody, String htmlBody) {
+        dispatch(toEmail, subject, textBody, htmlBody);
+    }
+
+    private void dispatch(String toEmail, String subject, String textBody, String htmlBody) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("from", fromEmail);
+        payload.put("to", List.of(toEmail));
+        payload.put("subject", subject);
+        payload.put("text", textBody);
+        if (htmlBody != null && !htmlBody.isBlank()) {
+            payload.put("html", htmlBody);
+        }
         restClient.post()
                 .uri("/emails")
                 .contentType(MediaType.APPLICATION_JSON)

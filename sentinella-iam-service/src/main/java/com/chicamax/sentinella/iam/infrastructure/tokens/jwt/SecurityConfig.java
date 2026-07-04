@@ -78,6 +78,7 @@ public class SecurityConfig {
                     auth.requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info", "/actuator/prometheus")
                             .permitAll()
                             .requestMatchers(HttpMethod.GET, "/v1/users/assignable").authenticated()
+                            .requestMatchers(HttpMethod.GET, "/v1/users/members").authenticated()
                             .requestMatchers(HttpMethod.GET, "/v1/users/me").authenticated()
                             .requestMatchers(HttpMethod.PATCH, "/v1/users/me").authenticated()
                             .requestMatchers(HttpMethod.POST, "/v1/users/me/device-tokens").authenticated()
