@@ -1,17 +1,15 @@
 package com.chicamax.sentinella.blockchain.interfaces.rest.resources;
 
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
-public record LedgerRecordResource(
-        UUID id,
+public record LedgerVerifyResource(
+        UUID recordId,
         String entityType,
         UUID entityId,
-        UUID relatedEntityId,
-        UUID nodeId,
         String contentHash,
         String fabricTxId,
+        boolean indexed,
         boolean onChain,
-        OffsetDateTime registeredAt
+        boolean verified
 ) {
 }

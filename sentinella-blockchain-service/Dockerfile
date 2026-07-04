@@ -3,8 +3,8 @@ WORKDIR /app
 COPY . .
 RUN mvn -B -DskipTests -pl sentinella-blockchain-service -am package
 
-FROM eclipse-temurin:21-jre-alpine
-RUN addgroup -S app && adduser -S app -G app
+FROM eclipse-temurin:21-jre
+RUN groupadd -r app && useradd -r -g app app
 WORKDIR /app
 COPY --from=build /app/sentinella-blockchain-service/target/sentinella-blockchain-service-0.0.1-SNAPSHOT.jar app.jar
 RUN chown app:app /app/app.jar

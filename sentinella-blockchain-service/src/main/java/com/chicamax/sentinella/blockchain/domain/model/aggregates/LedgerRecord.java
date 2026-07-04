@@ -20,11 +20,20 @@ public class LedgerRecord {
     @Column(name = "entity_id", nullable = false)
     private UUID entityId;
 
+    @Column(name = "related_entity_id")
+    private UUID relatedEntityId;
+
+    @Column(name = "node_id")
+    private UUID nodeId;
+
     @Column(name = "content_hash", nullable = false)
     private String contentHash;
 
     @Column(name = "fabric_tx_id")
     private String fabricTxId;
+
+    @Column(name = "on_chain", nullable = false)
+    private boolean onChain;
 
     @Column(name = "registered_at", nullable = false)
     private OffsetDateTime registeredAt;
@@ -32,13 +41,25 @@ public class LedgerRecord {
     protected LedgerRecord() {
     }
 
-    public static LedgerRecord register(UUID id, String entityType, UUID entityId, String contentHash) {
+    public static LedgerRecord register(
+            UUID id,
+            String entityType,
+            UUID entityId,
+            UUID nodeId,
+            UUID relatedEntityId,
+            String contentHash,
+            String fabricTxId,
+            boolean onChain
+    ) {
         LedgerRecord record = new LedgerRecord();
         record.id = id;
         record.entityType = entityType;
         record.entityId = entityId;
+        record.nodeId = nodeId;
+        record.relatedEntityId = relatedEntityId;
         record.contentHash = contentHash;
-        record.fabricTxId = "stub-" + id.toString().substring(0, 8);
+        record.fabricTxId = fabricTxId;
+        record.onChain = onChain;
         record.registeredAt = OffsetDateTime.now();
         return record;
     }
@@ -55,12 +76,24 @@ public class LedgerRecord {
         return entityId;
     }
 
+    public UUID getRelatedEntityId() {
+        return relatedEntityId;
+    }
+
+    public UUID getNodeId() {
+        return nodeId;
+    }
+
     public String getContentHash() {
         return contentHash;
     }
 
     public String getFabricTxId() {
         return fabricTxId;
+    }
+
+    public boolean isOnChain() {
+        return onChain;
     }
 
     public OffsetDateTime getRegisteredAt() {

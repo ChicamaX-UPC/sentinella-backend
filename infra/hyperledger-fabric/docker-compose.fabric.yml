@@ -1,0 +1,6 @@
+# DEPRECATED — usar docker-compose.fabric.yml en la raíz de sentinella-backend.
+# Este archivo se mantiene solo como referencia. El arranque unificado es:
+#   cd sentinella-backend
+#   docker compose -f docker-compose.yml -f docker-compose.fabric.yml --profile fabric up -d fabric-orderer fabric-peer0
+#
+# Ver: sentinella-backend/docker-compose.fabric.yml

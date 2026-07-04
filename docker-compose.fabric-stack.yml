@@ -1,0 +1,26 @@
+# Habilita anclaje Hyperledger Fabric en blockchain-service (mismo proyecto Compose que Sentinella).
+# Pre-requisito: infra/hyperledger-fabric/scripts/fabric-up.ps1
+#
+# Stack unificado (un solo grupo en Docker Desktop):
+#   docker compose -f docker-compose.yml -f docker-compose.fabric.yml -f docker-compose.fabric-stack.yml --profile fabric up -d
+
+services:
+  blockchain-service:
+    environment:
+      BLOCKCHAIN_FABRIC_ENABLED: "true"
+      BLOCKCHAIN_FABRIC_CONNECTION_PROFILE: /fabric/config/connection-org1.yaml
+      BLOCKCHAIN_FABRIC_USER_CERT: /fabric/gateway-identity/cert.pem
+      BLOCKCHAIN_FABRIC_USER_KEY: /fabric/gateway-identity/key.pem
+      BLOCKCHAIN_FABRIC_CHANNEL: sentinellachannel
+      BLOCKCHAIN_FABRIC_CHAINCODE: sentinella-ledger
+    volumes:
+      - ./infra/hyperledger-fabric/organizations:/fabric/organizations:ro
+      - ./infra/hyperledger-fabric/gateway-identity:/fabric/gateway-identity:ro
+      - ./infra/hyperledger-fabric/config:/fabric/config:ro
+    networks:
+      - default
+      - sentinella-fabric
+
+networks:
+  sentinella-fabric:
+    name: sentinella-fabric

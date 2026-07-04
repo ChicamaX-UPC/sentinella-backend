@@ -1,0 +1,2 @@
+ALTER TABLE blockchain.ledger_records
+    ADD COLUMN IF NOT EXISTS on_chain BOOLEAN NOT NULL DEFAULT FALSE;
