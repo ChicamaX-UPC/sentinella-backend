@@ -35,12 +35,19 @@ public class DashboardRealtimeRabbitBridge {
 
     @RabbitListener(queues = "realtime.alert.created.queue")
     public void onAlertCreated(AlertCreatedMessage event) {
-        messagingTemplate.convertAndSend("/topic/events", Map.of(
+        Map<String, Object> payload = new java.util.HashMap<>(Map.of(
                 "event", "alert.created",
                 "alertId", event.alertId().toString(),
                 "severity", event.severity(),
                 "nodeId", event.nodeId().toString()
         ));
+        if (event.sensorType() != null) {
+            payload.put("sensorType", event.sensorType());
+        }
+        if (event.triggeredValue() != null) {
+            payload.put("triggeredValue", event.triggeredValue());
+        }
+        messagingTemplate.convertAndSend("/topic/events", payload);
     }
 
     @RabbitListener(queues = "realtime.alert.closed.queue")

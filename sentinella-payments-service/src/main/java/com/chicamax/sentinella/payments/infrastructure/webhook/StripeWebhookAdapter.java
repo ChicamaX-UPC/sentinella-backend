@@ -10,7 +10,6 @@ import com.stripe.model.Invoice;
 import com.stripe.model.StripeObject;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -84,15 +83,13 @@ public class StripeWebhookAdapter {
     }
 
     @PostMapping("/confirm/{paymentId}")
-    public ResponseEntity<Map<String, Object>> confirmDemo(
-            @PathVariable UUID paymentId,
-            HttpServletRequest request
-    ) {
+    public ResponseEntity<Map<String, Object>> confirmDemo(@PathVariable UUID paymentId) {
+        // Gateado unicamente por STRIPE_DEMO_CONFIRM_ENABLED (false por defecto, solo se activa
+        // explicitamente en dev local). El chequeo de IP localhost se quito: en Docker la IP que
+        // ve este contenedor es la del puente/gateway, nunca 127.0.0.1, asi que ese chequeo
+        // bloqueaba el endpoint incluso en el propio entorno de desarrollo para el que existe.
         if (!demoConfirmEnabled) {
             return ResponseEntity.status(404).body(Map.of("status", "disabled"));
-        }
-        if (!isLocalhost(request.getRemoteAddr())) {
-            return ResponseEntity.status(403).body(Map.of("status", "forbidden"));
         }
         var payment = paymentCommandService.confirmPayment(paymentId, null);
         return ResponseEntity.ok(Map.of(
@@ -123,12 +120,6 @@ public class StripeWebhookAdapter {
             return;
         }
         paymentCommandService.cancelSubscriptionByStripeId(subscription.getId());
-    }
-
-    private static boolean isLocalhost(String remoteAddr) {
-        return "127.0.0.1".equals(remoteAddr)
-                || "0:0:0:0:0:0:0:1".equals(remoteAddr)
-                || "::1".equals(remoteAddr);
     }
 
     private <T extends StripeObject> T deserialize(Event event, Class<T> type) {

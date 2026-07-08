@@ -26,7 +26,10 @@ public class AlertEventPublisher {
         rabbitTemplate.convertAndSend(
                 SentinellaMessagingConstants.SENTINELLA_EXCHANGE,
                 SentinellaMessagingConstants.ALERT_CREATED_ROUTING,
-                new AlertCreatedMessage(event.alertId(), event.nodeId(), event.severity())
+                new AlertCreatedMessage(
+                        event.alertId(), event.nodeId(), event.severity(),
+                        event.sensorType(), event.triggeredValue()
+                )
         );
     }
 

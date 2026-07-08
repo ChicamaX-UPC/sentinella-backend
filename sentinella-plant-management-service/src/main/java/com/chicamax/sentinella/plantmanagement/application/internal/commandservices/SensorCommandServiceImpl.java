@@ -45,7 +45,18 @@ public class SensorCommandServiceImpl implements SensorCommandService {
         Sensor saved = sensorRepository.save(sensor);
         UUID ownerUserId = command.ownerUserId() != null ? command.ownerUserId() : saved.getId();
         sensorRegisteredRabbitPublisher.publish(
-                new SensorRegisteredMessage(saved.getId(), saved.getId(), ownerUserId, saved.getSensorType())
+                new SensorRegisteredMessage(
+                        saved.getId(),
+                        saved.getId(),
+                        ownerUserId,
+                        saved.getSensorType(),
+                        saved.getTailingDamId(),
+                        saved.getExternalId(),
+                        saved.getName(),
+                        saved.getLatitude(),
+                        saved.getLongitude(),
+                        saved.getPosition3d()
+                )
         );
         return saved;
     }

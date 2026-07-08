@@ -84,7 +84,10 @@ public class AlertCommandServiceImpl implements AlertCommandService {
         sentinellaMetrics.recordAlertCreated(saved.getSeverity().name());
         dispatchNotificationAsync(saved, resolveChannels(command.notificationChannels(), command.ruleId()));
         publishKpiRecompute("alert.created", saved.getNodeId());
-        eventPublisher.publishEvent(new AlertCreatedEvent(saved.getId(), saved.getNodeId(), saved.getSeverity().name()));
+        eventPublisher.publishEvent(new AlertCreatedEvent(
+                saved.getId(), saved.getNodeId(), saved.getSeverity().name(),
+                saved.getSensorType(), saved.getTriggeredValue()
+        ));
         return saved;
     }
 

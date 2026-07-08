@@ -26,15 +26,21 @@ public class SensorRegisteredConsumer {
             return;
         }
         SensorType type = parseSensorType(message.sensorType());
+        String externalId = message.externalId() != null && !message.externalId().isBlank()
+                ? message.externalId()
+                : "NODE-" + nodeId.toString().substring(0, 8);
+        String name = message.name() != null && !message.name().isBlank()
+                ? message.name()
+                : "Sensor " + nodeId.toString().substring(0, 8);
         SensorNode node = new SensorNode(
                 nodeId,
-                "NODE-" + nodeId.toString().substring(0, 8),
-                "Sensor " + nodeId.toString().substring(0, 8),
-                message.ownerUserId() != null ? message.ownerUserId() : UUID.fromString("00000000-0000-0000-0000-000000000010"),
+                externalId,
+                name,
+                message.tailingDamId(),
                 type,
-                null,
-                null,
-                null,
+                message.latitude(),
+                message.longitude(),
+                message.position3d(),
                 "ONLINE",
                 null
         );

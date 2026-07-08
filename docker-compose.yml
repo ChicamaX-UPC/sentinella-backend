@@ -9,6 +9,7 @@
 services:
   postgres:
     image: postgres:15-alpine
+    command: ["postgres", "-c", "max_connections=300"]
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -27,7 +28,7 @@ services:
   rabbitmq:
     image: rabbitmq:3.12-management-alpine
     ports:
-      - "5672:5672"
+      - "25672:5672"
       - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: guest
